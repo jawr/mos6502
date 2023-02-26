@@ -306,6 +306,12 @@ func NewMOS6502() *MOS6502 {
 	// CLV
 	cpu.instructions[0xb8] = &Instruction{name: "CLV", cycles: 2, execute: cpu.clv, size: 1, mode: AM_IMPLIED}
 
+	// INX
+	cpu.instructions[0xe8] = &Instruction{name: "INX", cycles: 2, execute: cpu.inx, size: 1, mode: AM_IMPLIED}
+
+	// INY
+	cpu.instructions[0xc8] = &Instruction{name: "INY", cycles: 2, execute: cpu.iny, size: 1, mode: AM_IMPLIED}
+
 	return &cpu
 }
 
@@ -426,20 +432,40 @@ func (cpu *MOS6502) sta(address uint16) {
 	cpu.memory[address] = cpu.a
 }
 
-func (cpu *MOS6502) nop(address uint16) {}
+func (cpu *MOS6502) nop(address uint16) {
+	// No Operation
+}
 
 func (cpu *MOS6502) clc(address uint16) {
+	// Clear Carry Flag
 	cpu.p.clear(P_C)
 }
 
 func (cpu *MOS6502) cld(address uint16) {
+	// Clear Decimal Mode
 	cpu.p.clear(P_D)
 }
 
 func (cpu *MOS6502) cli(address uint16) {
+	// Clear Interrupt Disable Bit
 	cpu.p.clear(P_I)
 }
 
 func (cpu *MOS6502) clv(address uint16) {
+	// Clear Overflow Flag
 	cpu.p.clear(P_V)
+}
+
+func (cpu *MOS6502) inx(address uint16) {
+	// Increment Index X by One
+	cpu.x++
+	cpu.testAndSetNegative(cpu.x)
+	cpu.testAndSetZero(cpu.x)
+}
+
+func (cpu *MOS6502) iny(address uint16) {
+	// Increment Index Y by One
+	cpu.y++
+	cpu.testAndSetNegative(cpu.y)
+	cpu.testAndSetZero(cpu.y)
 }

@@ -294,3 +294,43 @@ func TestCLV(t *testing.T) {
 		})
 	}
 }
+
+func TestINX(t *testing.T) {
+	cases := []struct {
+		name   string
+		start  uint8
+		expect uint8
+	}{
+		{"0x0  -> 0x1", 0x0, 0x1},
+		{"0xaa -> 0xab", 0xaa, 0xab},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			cpu := setup([]uint8{0xe8}, nil)
+			cpu.x = test.start
+			cycle(t, cpu, 2)
+			expect8(t, cpu.x, test.expect)
+		})
+	}
+}
+
+func TestINY(t *testing.T) {
+	cases := []struct {
+		name   string
+		start  uint8
+		expect uint8
+	}{
+		{"0x0  -> 0x1", 0x0, 0x1},
+		{"0xaa -> 0xab", 0xaa, 0xab},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			cpu := setup([]uint8{0xc8}, nil)
+			cpu.y = test.start
+			cycle(t, cpu, 2)
+			expect8(t, cpu.y, test.expect)
+		})
+	}
+}
