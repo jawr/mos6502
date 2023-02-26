@@ -415,16 +415,16 @@ func (cpu *MOS6502) ldx(address uint16) {
 	// Load Index X with Memory
 	value := cpu.memory.ReadWord(address)
 	cpu.x = uint8(value)
-	cpu.testAndSetNegative(cpu.a)
-	cpu.testAndSetZero(cpu.a)
+	cpu.testAndSetNegative(cpu.x)
+	cpu.testAndSetZero(cpu.x)
 }
 
 func (cpu *MOS6502) ldy(address uint16) {
 	// Load Index X with Memory
 	value := cpu.memory.ReadWord(address)
 	cpu.y = uint8(value)
-	cpu.testAndSetNegative(cpu.a)
-	cpu.testAndSetZero(cpu.a)
+	cpu.testAndSetNegative(cpu.y)
+	cpu.testAndSetZero(cpu.y)
 }
 
 func (cpu *MOS6502) sta(address uint16) {

@@ -6,5 +6,3 @@ mostly based off the instruction set documented here: https://www.masswerk.at/65
 
 - all instructions
 - add 1 cycles if page boundary is crossed
-- unittest testAndSetNegative in LDA, LDY, INX, etc
-- unittest testAndSetZero in LDA, LDY, INX, etc

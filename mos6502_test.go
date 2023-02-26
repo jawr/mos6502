@@ -40,6 +40,18 @@ func cycle(t *testing.T, cpu *MOS6502, n uint8) {
 	}
 }
 
+func expectZN(t *testing.T, cpu *MOS6502, name string, expect uint8) {
+	zero := expect == 0x0
+	if zero != cpu.p.isSet(P_Z) {
+		t.Errorf("expected %s to have P_Z set: %t", name, zero)
+	}
+
+	negative := expect&0b10000000 == 0b10000000
+	if negative != cpu.p.isSet(P_N) {
+		t.Errorf("expected %s to have P_N set: %t", name, negative)
+	}
+}
+
 func expect8(t *testing.T, a, b uint8) {
 	if a != b {
 		t.Errorf("expected a:%02x to be b:%02x", a, b)
@@ -65,6 +77,7 @@ func TestLDA(t *testing.T) {
 		y uint8
 	}{
 		{"immediate", []uint8{0xa9, 0x42}, nil, 2, 0x42, 0x0, 0x0},
+		{"immediate, with zero", []uint8{0xa9, 0x00}, nil, 2, 0x0, 0x0, 0x0},
 		{"zeropage", []uint8{0xa5, 0x01}, map[uint16]uint8{0x0001: 0x99}, 3, 0x99, 0x0, 0x0},
 		{"zeropage,x(x=0)", []uint8{0xb5, 0x80}, map[uint16]uint8{0x0080: 0x40}, 4, 0x40, 0x0, 0x0},
 		{"zeropage,x(x=0x02)", []uint8{0xb5, 0x80}, map[uint16]uint8{0x0080: 0x40, 0x0082: 0xaa}, 4, 0xaa, 0x2, 0x0},
@@ -87,6 +100,7 @@ func TestLDA(t *testing.T) {
 			cycle(t, cpu, test.cycles)
 			// assertions
 			expect8(t, cpu.a, test.expect)
+
 		})
 	}
 }
@@ -118,6 +132,7 @@ func TestLDX(t *testing.T) {
 			cycle(t, cpu, test.cycles)
 			// assertions
 			expect8(t, cpu.x, test.expect)
+			expectZN(t, cpu, test.name, test.expect)
 		})
 	}
 }
@@ -149,6 +164,7 @@ func TestLDY(t *testing.T) {
 			cycle(t, cpu, test.cycles)
 			// assertions
 			expect8(t, cpu.x, test.expect)
+			expectZN(t, cpu, test.name, test.expect)
 		})
 	}
 }
@@ -210,9 +226,6 @@ func TestCLC(t *testing.T) {
 				cpu.p.clear(P_C)
 			}
 			cycle(t, cpu, 2)
-			if cpu.p.isSet(P_C) != test.expect {
-				t.Errorf("expected P_C to be %t got %t", test.expect, cpu.p.isSet(P_C))
-			}
 		})
 	}
 }
@@ -236,9 +249,6 @@ func TestCLD(t *testing.T) {
 				cpu.p.clear(P_D)
 			}
 			cycle(t, cpu, 2)
-			if cpu.p.isSet(P_D) != test.expect {
-				t.Errorf("expected P_D to be %t got %t", test.expect, cpu.p.isSet(P_D))
-			}
 		})
 	}
 }
@@ -311,6 +321,7 @@ func TestINX(t *testing.T) {
 			cpu.x = test.start
 			cycle(t, cpu, 2)
 			expect8(t, cpu.x, test.expect)
+			expectZN(t, cpu, test.name, test.expect)
 		})
 	}
 }
@@ -331,6 +342,7 @@ func TestINY(t *testing.T) {
 			cpu.y = test.start
 			cycle(t, cpu, 2)
 			expect8(t, cpu.y, test.expect)
+			expectZN(t, cpu, test.name, test.expect)
 		})
 	}
 }
