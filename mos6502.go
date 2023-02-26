@@ -437,9 +437,7 @@ func (cpu *MOS6502) cld(address uint16) {
 }
 
 func (cpu *MOS6502) cli(address uint16) {
-	fmt.Printf("preclear %08b %08b\n", P_I, cpu.p)
 	cpu.p.clear(P_I)
-	fmt.Printf("postclear %08b %08b\n", P_I, cpu.p)
 }
 
 func (cpu *MOS6502) clv(address uint16) {
