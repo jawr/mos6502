@@ -306,6 +306,12 @@ func NewMOS6502() *MOS6502 {
 	// CLV
 	cpu.instructions[0xb8] = &Instruction{name: "CLV", cycles: 2, execute: cpu.clv, size: 1, mode: AM_IMPLIED}
 
+	// INC
+	cpu.instructions[0xe6] = &Instruction{name: "INC", cycles: 5, execute: cpu.inc, size: 2, mode: AM_ZEROPAGE}
+	cpu.instructions[0xf6] = &Instruction{name: "INC", cycles: 6, execute: cpu.inc, size: 2, mode: AM_ZEROPAGE_X}
+	cpu.instructions[0xee] = &Instruction{name: "INC", cycles: 6, execute: cpu.inc, size: 3, mode: AM_ABSOLUTE}
+	cpu.instructions[0xfe] = &Instruction{name: "INC", cycles: 7, execute: cpu.inc, size: 3, mode: AM_INDEXED_X}
+
 	// INX
 	cpu.instructions[0xe8] = &Instruction{name: "INX", cycles: 2, execute: cpu.inx, size: 1, mode: AM_IMPLIED}
 
@@ -468,4 +474,12 @@ func (cpu *MOS6502) iny(address uint16) {
 	cpu.y++
 	cpu.testAndSetNegative(cpu.y)
 	cpu.testAndSetZero(cpu.y)
+}
+
+func (cpu *MOS6502) inc(address uint16) {
+	// Increment Memory by One
+	cpu.memory[address]++
+	value := cpu.memory.Read(address)
+	cpu.testAndSetNegative(value)
+	cpu.testAndSetZero(value)
 }

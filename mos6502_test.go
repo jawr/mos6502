@@ -346,3 +346,33 @@ func TestINY(t *testing.T) {
 		})
 	}
 }
+
+func TestINC(t *testing.T) {
+	cases := []struct {
+		name    string
+		program []uint8
+		// initialise bootstrap with memory
+		bootstrap     map[uint16]uint8
+		cycles        uint8
+		expect        uint8
+		expectAddress uint16
+		// initialise registers
+		x uint8
+	}{
+		{"zeropage", []uint8{0xe6, 0x42}, map[uint16]uint8{0x0042: 0x90}, 5, 0x91, 0x0042, 0},
+		{"zeropage,x", []uint8{0xf6, 0x42}, map[uint16]uint8{0x0043: 0x90}, 6, 0x91, 0x0043, 0x01},
+		{"absolute", []uint8{0xee, 0x42, 0xaa}, map[uint16]uint8{0xaa42: 0x90}, 6, 0x91, 0xaa42, 0},
+		{"absolute,x", []uint8{0xfe, 0x42, 0xaa}, map[uint16]uint8{0xaa43: 0x90}, 7, 0x91, 0xaa43, 0x01},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			cpu := setup(test.program, test.bootstrap)
+			cpu.x = test.x
+			cycle(t, cpu, test.cycles)
+			value := cpu.memory.Read(test.expectAddress)
+			expect8(t, value, test.expect)
+			expectZN(t, cpu, test.name, test.expect)
+		})
+	}
+}
