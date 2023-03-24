@@ -5,34 +5,33 @@ import (
 )
 
 /*
-	65k of memory, 256 pages with
-	256 bytes per page
+65k of memory, 256 pages with
+256 bytes per page
 
-	addresses are 16 bits in length with the
-	first byte referencing the page (up to 255)
-	and the second byte referncing the offset
-	on the page (up to 255)
+addresses are 16 bits in length with the
+first byte referencing the page (up to 255)
+and the second byte referncing the offset
+on the page (up to 255)
 
-	1
-	2 6 3 1
-	8 4 2 6 8 4 2 1
-	---------------
-	0 0 0 0 0 0 0 0
+1
+2 6 3 1
+8 4 2 6 8 4 2 1
+---------------
+0 0 0 0 0 0 0 0
 
-	page 0 aka Zero Page is a special
-	page for quick access as accessing
-	it only requires 1 byte address rather than
-	two
+page 0 aka Zero Page is a special
+page for quick access as accessing
+it only requires 1 byte address rather than
+two
 
-	the last six bytes of the last page (page 255)
-	have special addresses but are still considered ROM:
+the last six bytes of the last page (page 255)
+have special addresses but are still considered ROM:
 
-	- interrupt handlers for (IRC and NMI)
-	- reset handler (starting point for the processor)
+- interrupt handlers for (IRC and NMI)
+- reset handler (starting point for the processor)
 
-
-	overall the lower half of memory is RAM and the
-	upper half is ROM
+overall the lower half of memory is RAM and the
+upper half is ROM
 */
 type Memory [0x100 * 0x100]uint8
 
@@ -63,15 +62,8 @@ const (
 	AM_RELATIVE
 )
 
-type InstructionName string
-
-const (
-	LDA InstructionName = "LDA"
-	NOP InstructionName = "NOP"
-)
-
 type Instruction struct {
-	name    InstructionName
+	name    string
 	cycles  uint8
 	size    uint8 // number of bytes to load
 	execute func(uint16)
@@ -164,6 +156,16 @@ func (i *Instruction) parseOperand(cpu *MOS6502) uint16 {
 		// resolve the lookup
 		return lookup
 
+	case AM_INDIRECT:
+		// get the indirect address
+		lo := cpu.memory.Read(cpu.pc)
+		hi := cpu.memory.Read(cpu.pc + 1)
+
+		address := (uint16(hi) << 8) + uint16(lo)
+
+		// read the address from the indirect address
+		return cpu.memory.ReadWord(address)
+
 	default:
 		panic("unsupported address mode")
 	}
@@ -205,7 +207,61 @@ type MOS6502 struct {
 
 func NewMOS6502() *MOS6502 {
 	cpu := MOS6502{}
-	// setup instructions table
+
+	// ADC
+	cpu.instructions[0x69] = &Instruction{name: "ADC", cycles: 2, execute: cpu.adc, size: 2, mode: AM_IMMEDIATE}
+	cpu.instructions[0x65] = &Instruction{name: "ADC", cycles: 3, execute: cpu.adc, size: 2, mode: AM_ZEROPAGE}
+	cpu.instructions[0x75] = &Instruction{name: "ADC", cycles: 4, execute: cpu.adc, size: 2, mode: AM_ZEROPAGE_X}
+	cpu.instructions[0x6d] = &Instruction{name: "ADC", cycles: 4, execute: cpu.adc, size: 3, mode: AM_ABSOLUTE}
+	cpu.instructions[0x7d] = &Instruction{name: "ADC", cycles: 4, execute: cpu.adc, size: 3, mode: AM_INDEXED_X}
+	cpu.instructions[0x79] = &Instruction{name: "ADC", cycles: 4, execute: cpu.adc, size: 3, mode: AM_INDEXED_Y}
+	cpu.instructions[0x61] = &Instruction{name: "ADC", cycles: 6, execute: cpu.adc, size: 2, mode: AM_PRE_INDEXED}
+	cpu.instructions[0x71] = &Instruction{name: "ADC", cycles: 5, execute: cpu.adc, size: 2, mode: AM_POST_INDEXED}
+
+	// AND
+	cpu.instructions[0x29] = &Instruction{name: "AND", cycles: 2, execute: cpu.and, size: 2, mode: AM_IMMEDIATE}
+	cpu.instructions[0x25] = &Instruction{name: "AND", cycles: 3, execute: cpu.and, size: 2, mode: AM_ZEROPAGE}
+	cpu.instructions[0x35] = &Instruction{name: "AND", cycles: 4, execute: cpu.and, size: 2, mode: AM_ZEROPAGE_X}
+	cpu.instructions[0x2d] = &Instruction{name: "AND", cycles: 4, execute: cpu.and, size: 3, mode: AM_ABSOLUTE}
+	cpu.instructions[0x3d] = &Instruction{name: "AND", cycles: 4, execute: cpu.and, size: 3, mode: AM_INDEXED_X}
+	cpu.instructions[0x39] = &Instruction{name: "AND", cycles: 4, execute: cpu.and, size: 3, mode: AM_INDEXED_Y}
+	cpu.instructions[0x21] = &Instruction{name: "AND", cycles: 6, execute: cpu.and, size: 2, mode: AM_PRE_INDEXED}
+	cpu.instructions[0x31] = &Instruction{name: "AND", cycles: 5, execute: cpu.and, size: 2, mode: AM_POST_INDEXED}
+
+	// ASL
+
+	// CLC
+	cpu.instructions[0x18] = &Instruction{name: "CLC", cycles: 2, execute: cpu.clc, size: 1, mode: AM_IMPLIED}
+
+	// CLD
+	cpu.instructions[0xd8] = &Instruction{name: "CLD", cycles: 2, execute: cpu.cld, size: 1, mode: AM_IMPLIED}
+
+	// CLI
+	cpu.instructions[0x58] = &Instruction{name: "CLI", cycles: 2, execute: cpu.cli, size: 1, mode: AM_IMPLIED}
+
+	// CLV
+	cpu.instructions[0xb8] = &Instruction{name: "CLV", cycles: 2, execute: cpu.clv, size: 1, mode: AM_IMPLIED}
+
+	// INC
+	cpu.instructions[0xe6] = &Instruction{name: "INC", cycles: 5, execute: cpu.inc, size: 2, mode: AM_ZEROPAGE}
+	cpu.instructions[0xf6] = &Instruction{name: "INC", cycles: 6, execute: cpu.inc, size: 2, mode: AM_ZEROPAGE_X}
+	cpu.instructions[0xee] = &Instruction{name: "INC", cycles: 6, execute: cpu.inc, size: 3, mode: AM_ABSOLUTE}
+	cpu.instructions[0xfe] = &Instruction{name: "INC", cycles: 7, execute: cpu.inc, size: 3, mode: AM_INDEXED_X}
+
+	// INX
+	cpu.instructions[0xe8] = &Instruction{name: "INX", cycles: 2, execute: cpu.inx, size: 1, mode: AM_IMPLIED}
+
+	// INY
+	cpu.instructions[0xc8] = &Instruction{name: "INY", cycles: 2, execute: cpu.iny, size: 1, mode: AM_IMPLIED}
+
+	// JMP
+	cpu.instructions[0x4c] = &Instruction{name: "JMP", cycles: 3, execute: cpu.jmp, size: 3, mode: AM_ABSOLUTE}
+	cpu.instructions[0x6c] = &Instruction{name: "JMP", cycles: 5, execute: cpu.jmp, size: 3, mode: AM_INDIRECT}
+
+	// JSR
+	cpu.instructions[0x20] = &Instruction{name: "JSR", cycles: 6, execute: cpu.jsr, size: 3, mode: AM_ABSOLUTE}
+
+	// NOP
 	cpu.instructions[0xea] = &Instruction{
 		name:    "NOP",
 		cycles:  2,
@@ -213,6 +269,7 @@ func NewMOS6502() *MOS6502 {
 		size:    1,
 		mode:    AM_IMPLIED,
 	}
+
 	// LDA
 	cpu.instructions[0xa9] = &Instruction{
 		name:    "LDA",
@@ -294,30 +351,6 @@ func NewMOS6502() *MOS6502 {
 	cpu.instructions[0x81] = &Instruction{name: "STA", cycles: 6, execute: cpu.sta, size: 2, mode: AM_PRE_INDEXED}
 	cpu.instructions[0x91] = &Instruction{name: "STA", cycles: 6, execute: cpu.sta, size: 2, mode: AM_POST_INDEXED}
 
-	// CLC
-	cpu.instructions[0x18] = &Instruction{name: "CLC", cycles: 2, execute: cpu.clc, size: 1, mode: AM_IMPLIED}
-
-	// CLD
-	cpu.instructions[0xd8] = &Instruction{name: "CLD", cycles: 2, execute: cpu.cld, size: 1, mode: AM_IMPLIED}
-
-	// CLI
-	cpu.instructions[0x58] = &Instruction{name: "CLI", cycles: 2, execute: cpu.cli, size: 1, mode: AM_IMPLIED}
-
-	// CLV
-	cpu.instructions[0xb8] = &Instruction{name: "CLV", cycles: 2, execute: cpu.clv, size: 1, mode: AM_IMPLIED}
-
-	// INC
-	cpu.instructions[0xe6] = &Instruction{name: "INC", cycles: 5, execute: cpu.inc, size: 2, mode: AM_ZEROPAGE}
-	cpu.instructions[0xf6] = &Instruction{name: "INC", cycles: 6, execute: cpu.inc, size: 2, mode: AM_ZEROPAGE_X}
-	cpu.instructions[0xee] = &Instruction{name: "INC", cycles: 6, execute: cpu.inc, size: 3, mode: AM_ABSOLUTE}
-	cpu.instructions[0xfe] = &Instruction{name: "INC", cycles: 7, execute: cpu.inc, size: 3, mode: AM_INDEXED_X}
-
-	// INX
-	cpu.instructions[0xe8] = &Instruction{name: "INX", cycles: 2, execute: cpu.inx, size: 1, mode: AM_IMPLIED}
-
-	// INY
-	cpu.instructions[0xc8] = &Instruction{name: "INY", cycles: 2, execute: cpu.iny, size: 1, mode: AM_IMPLIED}
-
 	return &cpu
 }
 
@@ -349,7 +382,6 @@ func (cpu *MOS6502) Cycle() {
 
 	instruction := cpu.instructions[opcode]
 	if instruction == nil {
-		fmt.Printf("unknown opcode %02x\n", opcode)
 		return
 	}
 
@@ -393,7 +425,7 @@ func (a *flags) clear(b flag) {
 }
 
 func (cpu *MOS6502) testAndSetNegative(b uint8) {
-	if b&0b10000000 == 0b10000000 {
+	if b&0x80 == 0x80 {
 		cpu.p.set(P_N)
 	} else {
 		cpu.p.clear(P_N)
@@ -408,38 +440,59 @@ func (cpu *MOS6502) testAndSetZero(b uint8) {
 	}
 }
 
+func (cpu *MOS6502) testAndSetCarry(b uint16) {
+	// if b is bigger than an 8bit set the carry
+	if b > 0xff {
+		cpu.p.set(P_C)
+	} else {
+		cpu.p.clear(P_C)
+	}
+}
+
+func (cpu *MOS6502) testAndSetOverflow(a, b, sum uint16) {
+	// Calculate the overflow by checking if the sign bit of the operands and
+	// the result differ (which indicates a signed overflow has occurred).
+	aSign := a & 0x80
+	bSign := b & 0x80
+	sumSign := sum & 0x80
+	overflow := (aSign == bSign) && (aSign != sumSign)
+
+	if overflow {
+		cpu.p.set(P_N)
+	} else {
+		cpu.p.clear(P_N)
+	}
+}
+
 // operations
-func (cpu *MOS6502) lda(address uint16) {
-	// Load Accumulator with Memory
-	value := cpu.memory.ReadWord(address)
-	cpu.a = uint8(value)
+
+func (cpu *MOS6502) adc(address uint16) {
+	// Add Memory to Accumulator with Carry
+	// A + M + C -> A, C
+	var c uint16 = 0
+	if cpu.p.isSet(P_C) {
+		c = 1
+	}
+
+	a := uint16(cpu.a)
+	m := uint16(cpu.memory.Read(address))
+
+	// sum in uint16 to catch overflow
+	sum := a + m + c
+
+	cpu.a = uint8(sum & 0xff)
+	cpu.testAndSetCarry(sum)
 	cpu.testAndSetNegative(cpu.a)
 	cpu.testAndSetZero(cpu.a)
+	cpu.testAndSetOverflow(a, m, sum)
 }
 
-func (cpu *MOS6502) ldx(address uint16) {
-	// Load Index X with Memory
-	value := cpu.memory.ReadWord(address)
-	cpu.x = uint8(value)
-	cpu.testAndSetNegative(cpu.x)
-	cpu.testAndSetZero(cpu.x)
-}
-
-func (cpu *MOS6502) ldy(address uint16) {
-	// Load Index X with Memory
-	value := cpu.memory.ReadWord(address)
-	cpu.y = uint8(value)
-	cpu.testAndSetNegative(cpu.y)
-	cpu.testAndSetZero(cpu.y)
-}
-
-func (cpu *MOS6502) sta(address uint16) {
-	// Store Accumulator in Memory
-	cpu.memory[address] = cpu.a
-}
-
-func (cpu *MOS6502) nop(address uint16) {
-	// No Operation
+func (cpu *MOS6502) and(address uint16) {
+	b := cpu.memory.Read(address)
+	fmt.Printf("and %04x v=%02x & a=%02x\n", address, b, cpu.a)
+	cpu.a = cpu.a & b
+	cpu.testAndSetNegative(cpu.a)
+	cpu.testAndSetZero(cpu.a)
 }
 
 func (cpu *MOS6502) clc(address uint16) {
@@ -482,4 +535,46 @@ func (cpu *MOS6502) inc(address uint16) {
 	value := cpu.memory.Read(address)
 	cpu.testAndSetNegative(value)
 	cpu.testAndSetZero(value)
+}
+
+func (cpu *MOS6502) jmp(address uint16) {
+	// Jump to New Location
+	cpu.pc = address
+}
+
+func (cpu *MOS6502) jsr(address uint16) {
+	panic("not implemented")
+}
+
+func (cpu *MOS6502) nop(address uint16) {
+	// No Operation
+}
+
+func (cpu *MOS6502) lda(address uint16) {
+	// Load Accumulator with Memory
+	value := cpu.memory.ReadWord(address)
+	cpu.a = uint8(value)
+	cpu.testAndSetNegative(cpu.a)
+	cpu.testAndSetZero(cpu.a)
+}
+
+func (cpu *MOS6502) ldx(address uint16) {
+	// Load Index X with Memory
+	value := cpu.memory.ReadWord(address)
+	cpu.x = uint8(value)
+	cpu.testAndSetNegative(cpu.x)
+	cpu.testAndSetZero(cpu.x)
+}
+
+func (cpu *MOS6502) ldy(address uint16) {
+	// Load Index X with Memory
+	value := cpu.memory.ReadWord(address)
+	cpu.y = uint8(value)
+	cpu.testAndSetNegative(cpu.y)
+	cpu.testAndSetZero(cpu.y)
+}
+
+func (cpu *MOS6502) sta(address uint16) {
+	// Store Accumulator in Memory
+	cpu.memory[address] = cpu.a
 }

@@ -31,6 +31,8 @@ func setup(program []uint8, bootstrap map[uint16]uint8) *MOS6502 {
 
 // cycle a cpu n cycles
 func cycle(t *testing.T, cpu *MOS6502, n uint8) {
+	t.Helper()
+
 	var i uint8
 	for i = 0; i < n; i++ {
 		cpu.Cycle()
@@ -40,15 +42,47 @@ func cycle(t *testing.T, cpu *MOS6502, n uint8) {
 	}
 }
 
-func expectZN(t *testing.T, cpu *MOS6502, name string, expect uint8) {
+func expectZN(t *testing.T, cpu *MOS6502, expect uint8) {
+	t.Helper()
+
 	zero := expect == 0x0
 	if zero != cpu.p.isSet(P_Z) {
-		t.Errorf("expected %s to have P_Z set: %t", name, zero)
+		t.Errorf("expected P_Z set: %t", zero)
 	}
 
 	negative := expect&0b10000000 == 0b10000000
 	if negative != cpu.p.isSet(P_N) {
-		t.Errorf("expected %s to have P_N set: %t", name, negative)
+		t.Errorf("expected P_N set: %t", negative)
+	}
+}
+
+func expectZ(t *testing.T, cpu *MOS6502, expect bool) {
+	t.Helper()
+
+	if expect != cpu.p.isSet(P_Z) {
+		t.Errorf("expected P_Z expected: %t got: %t", expect, cpu.p.isSet(P_Z))
+	}
+}
+
+func expectN(t *testing.T, cpu *MOS6502, expect bool) {
+	t.Helper()
+
+	if expect != cpu.p.isSet(P_N) {
+		t.Errorf("expected P_N expected: %t got: %t", expect, cpu.p.isSet(P_N))
+	}
+}
+
+func expectV(t *testing.T, cpu *MOS6502, expect bool) {
+	t.Helper()
+
+	if expect != cpu.p.isSet(P_V) {
+		t.Errorf("expected P_V expected: %t got: %t", expect, cpu.p.isSet(P_V))
+	}
+}
+
+func expectC(t *testing.T, cpu *MOS6502, expect bool) {
+	if expect != cpu.p.isSet(P_C) {
+		t.Errorf("expected P_C expected: %t got: %t", expect, cpu.p.isSet(P_C))
 	}
 }
 
@@ -132,7 +166,7 @@ func TestLDX(t *testing.T) {
 			cycle(t, cpu, test.cycles)
 			// assertions
 			expect8(t, cpu.x, test.expect)
-			expectZN(t, cpu, test.name, test.expect)
+			expectZN(t, cpu, test.expect)
 		})
 	}
 }
@@ -164,7 +198,7 @@ func TestLDY(t *testing.T) {
 			cycle(t, cpu, test.cycles)
 			// assertions
 			expect8(t, cpu.x, test.expect)
-			expectZN(t, cpu, test.name, test.expect)
+			expectZN(t, cpu, test.expect)
 		})
 	}
 }
@@ -321,7 +355,7 @@ func TestINX(t *testing.T) {
 			cpu.x = test.start
 			cycle(t, cpu, 2)
 			expect8(t, cpu.x, test.expect)
-			expectZN(t, cpu, test.name, test.expect)
+			expectZN(t, cpu, test.expect)
 		})
 	}
 }
@@ -342,7 +376,7 @@ func TestINY(t *testing.T) {
 			cpu.y = test.start
 			cycle(t, cpu, 2)
 			expect8(t, cpu.y, test.expect)
-			expectZN(t, cpu, test.name, test.expect)
+			expectZN(t, cpu, test.expect)
 		})
 	}
 }
@@ -372,7 +406,169 @@ func TestINC(t *testing.T) {
 			cycle(t, cpu, test.cycles)
 			value := cpu.memory.Read(test.expectAddress)
 			expect8(t, value, test.expect)
-			expectZN(t, cpu, test.name, test.expect)
+			expectZN(t, cpu, test.expect)
+		})
+	}
+}
+
+func TestJMP(t *testing.T) {
+	cases := []struct {
+		name      string
+		program   []uint8
+		bootstrap map[uint16]uint8
+		cycles    uint8
+		expectPC  uint16
+	}{
+		{"absolute", []uint8{0x4c, 0x00, 0x04}, nil, 3, 0x0400},
+		{"indirect", []uint8{0x6c, 0x00, 0x04}, map[uint16]uint8{
+			0x0400: 0x42,
+			0x0401: 0x23,
+			0x042:  0x23,
+			0x043:  0x42,
+		}, 5, 0x2342},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			cpu := setup(test.program, test.bootstrap)
+			cycle(t, cpu, test.cycles)
+			expect16(t, cpu.pc, test.expectPC)
+		})
+	}
+}
+
+func TestADC(t *testing.T) {
+	cases := []struct {
+		name      string
+		program   []uint8
+		bootstrap map[uint16]uint8
+		cycles    uint8
+		expect    uint8
+		expectC   bool
+		expectZ   bool
+		expectN   bool
+		// initialise registers
+		a     uint8
+		carry bool
+	}{
+		{
+			name:      "adds two positive numbers without carry",
+			program:   []uint8{0x69, 0x0F},
+			bootstrap: nil,
+			cycles:    2,
+			expect:    0x1F,
+			expectC:   false,
+			expectZ:   false,
+			expectN:   false,
+			a:         0x10,
+			carry:     false,
+		},
+		{
+			name:      "immediate without carry",
+			program:   []uint8{0x69, 0x42},
+			bootstrap: nil,
+			cycles:    2,
+			expect:    0x43,
+			expectC:   false,
+			expectZ:   false,
+			expectN:   false,
+			a:         0x01,
+			carry:     false,
+		},
+		{
+			name:      "zero page without carry",
+			program:   []uint8{0x65, 0x42},
+			bootstrap: map[uint16]uint8{0x42: 0x80},
+			cycles:    3,
+			expect:    0x81,
+			expectC:   false,
+			expectZ:   false,
+			expectN:   false,
+			a:         0x01,
+			carry:     false,
+		},
+		{
+			name:      "absolute without carry",
+			program:   []uint8{0x6d, 0x00, 0x04},
+			bootstrap: map[uint16]uint8{0x0400: 0x42},
+			cycles:    4,
+			expect:    0x43,
+			expectC:   false,
+			expectZ:   false,
+			expectN:   false,
+			a:         0x01,
+			carry:     false,
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			cpu := setup(test.program, test.bootstrap)
+			cpu.a = test.a
+			if test.carry {
+				cpu.p.set(P_C)
+			}
+			cycle(t, cpu, test.cycles)
+			expect8(t, cpu.a, test.expect)
+			expectC(t, cpu, test.expectC)
+			expectZ(t, cpu, test.expectZ)
+			expectN(t, cpu, test.expectN)
+		})
+	}
+}
+
+func TestAND(t *testing.T) {
+	cases := []struct {
+		name      string
+		program   []uint8
+		bootstrap map[uint16]uint8
+		cycles    uint8
+		expect    uint8
+		expectZ   bool
+		expectN   bool
+		// initialise registers
+		a uint8
+	}{
+		{
+			name:      "immediate",
+			program:   []uint8{0x29, 0xAA},
+			bootstrap: nil,
+			cycles:    2,
+			expect:    0xAA,
+			expectZ:   false,
+			expectN:   true,
+			a:         0xFF,
+		},
+		{
+			name:      "zero page",
+			program:   []uint8{0x25, 0x42},
+			bootstrap: map[uint16]uint8{0x42: 0x0F},
+			cycles:    3,
+			expect:    0x0e,
+			expectZ:   false,
+			expectN:   false,
+			a:         0xDE,
+		},
+		{
+			name:      "absolute",
+			program:   []uint8{0x2D, 0x00, 0x04},
+			bootstrap: map[uint16]uint8{0x0400: 0xF0},
+			cycles:    4,
+			expect:    0xc0,
+			expectZ:   false,
+			expectN:   true,
+			a:         0xC0,
+		},
+	}
+
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			cpu := setup(test.program, test.bootstrap)
+			cpu.a = test.a
+			cycle(t, cpu, test.cycles)
+			expect8(t, cpu.a, test.expect)
+			expectZ(t, cpu, test.expectZ)
+			expectN(t, cpu, test.expectN)
 		})
 	}
 }
