@@ -1,31 +1,100 @@
 package cpu
 
+import "fmt"
+
+// the address mode of the instruction determines how the
+// operand interacts with the registers and memory
 type AddressMode uint8
 
+// notes borrowed from https://www.masswerk.at/6502/6502_instruction_set.htm
 const (
+	// operand implied
 	AM_IMPLIED AddressMode = iota
+	// operand is byte BB (in OPC #$BB)
 	AM_IMMEDIATE
+	// operand is address $HHLL (in OPC $LLHH)
 	AM_ABSOLUTE
+	// operand is zeropage address (hi-byte is zero, address = $00LL) (in OPC $LL)
 	AM_ZEROPAGE
+	// operand is address; effective address is address incremented by X with carry
 	AM_INDEXED_X
+	// operand is address; effective address is address incremented by Y with carry
 	AM_INDEXED_Y
+	// operand is zeropage address; effective address is address incremented by X without carry (in OPC $LL,X)
 	AM_ZEROPAGE_X
+	// operand is zeropage address; effective address is address incremented by Y without carry (in OPC $LL,Y)
 	AM_ZEROPAGE_Y
+	// operand is address; effective address is contents of word at address: C.w($HHLL) (in OPC ($LLHH))
 	AM_INDIRECT
+	// operand is zeropage address; effective address is word in (LL + X, LL + X + 1), inc. without carry:
+	//	C.w($00LL + X)
+	// also known as X-indexed, indirect
 	AM_PRE_INDEXED
+	// operand is zeropage address; effective address is word in (LL, LL + 1) incremented by Y with carry:
+	//	C.w($00LL) + Y
+	// also known as indirect, Y-indexed
 	AM_POST_INDEXED
+	// branch target is PC + signed offset BB (in OPC $BB)
 	AM_RELATIVE
 )
 
-type Instruction struct {
-	name    string
-	cycles  uint8
-	size    uint8 // number of bytes to load
-	execute func(uint16)
-	mode    AddressMode
+// the instruction by name
+type OPCode string
+
+const (
+	OPC_ADC = "ADC"
+	OPC_AND = "AND"
+	OPC_ASL = "ASL"
+	OPC_CLC = "CLC"
+	OPC_CLD = "CLD"
+	OPC_CLI = "CLI"
+	OPC_CLV = "CLV"
+	OPC_INC = "INC"
+	OPC_INX = "INX"
+	OPC_INY = "INY"
+	OPC_JMP = "JMP"
+	OPC_JSR = "JSR"
+	OPC_NOP = "NOP"
+	OPC_LDA = "LDA"
+	OPC_LDX = "LDX"
+	OPC_LDY = "LDY"
+	OPC_STA = "STA"
+	OPC_LSR = "LSR"
+)
+
+// the function that will be executed for this instruction
+type executor func(*instruction, uint16)
+
+type instruction struct {
+	opc    OPCode
+	cycles uint8
+	size   uint8 // number of bytes to load
+	fn     executor
+	mode   AddressMode
 }
 
-func (i *Instruction) parseOperand(cpu *MOS6502) uint16 {
+func NewInstruction(opc OPCode, cycles, size uint8, fn executor, mode AddressMode) *instruction {
+	if cycles == 0 {
+		panic(fmt.Sprintf("instruction %s has 0 cycles", opc))
+	}
+	if size == 0 {
+		panic(fmt.Sprintf("instruction %s has 0 size", opc))
+	}
+
+	return &instruction{
+		opc:    opc,
+		cycles: cycles,
+		size:   size,
+		fn:     fn,
+		mode:   mode,
+	}
+}
+
+func (i *instruction) execute(operand uint16) {
+	i.fn(i, operand)
+}
+
+func (i *instruction) parseOperand(cpu *MOS6502) uint16 {
 	switch i.mode {
 	case AM_IMPLIED:
 		// single byte instructrions

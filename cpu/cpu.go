@@ -30,7 +30,7 @@ type MOS6502 struct {
 	wait uint8
 
 	// instruction table
-	instructions [0x100]*Instruction
+	instructions [0x100]*instruction
 
 	// memory thats set on reset
 	memory *Memory
@@ -40,147 +40,100 @@ func NewMOS6502() *MOS6502 {
 	cpu := MOS6502{}
 
 	// ADC
-	cpu.instructions[0x69] = &Instruction{name: "ADC", cycles: 2, execute: cpu.adc, size: 2, mode: AM_IMMEDIATE}
-	cpu.instructions[0x65] = &Instruction{name: "ADC", cycles: 3, execute: cpu.adc, size: 2, mode: AM_ZEROPAGE}
-	cpu.instructions[0x75] = &Instruction{name: "ADC", cycles: 4, execute: cpu.adc, size: 2, mode: AM_ZEROPAGE_X}
-	cpu.instructions[0x6d] = &Instruction{name: "ADC", cycles: 4, execute: cpu.adc, size: 3, mode: AM_ABSOLUTE}
-	cpu.instructions[0x7d] = &Instruction{name: "ADC", cycles: 4, execute: cpu.adc, size: 3, mode: AM_INDEXED_X}
-	cpu.instructions[0x79] = &Instruction{name: "ADC", cycles: 4, execute: cpu.adc, size: 3, mode: AM_INDEXED_Y}
-	cpu.instructions[0x61] = &Instruction{name: "ADC", cycles: 6, execute: cpu.adc, size: 2, mode: AM_PRE_INDEXED}
-	cpu.instructions[0x71] = &Instruction{name: "ADC", cycles: 5, execute: cpu.adc, size: 2, mode: AM_POST_INDEXED}
+	cpu.instructions[0x69] = NewInstruction(OPC_ADC, 2, 2, cpu.adc, AM_IMMEDIATE)
+	cpu.instructions[0x65] = NewInstruction(OPC_ADC, 3, 2, cpu.adc, AM_ZEROPAGE)
+	cpu.instructions[0x75] = NewInstruction(OPC_ADC, 4, 2, cpu.adc, AM_ZEROPAGE_X)
+	cpu.instructions[0x6d] = NewInstruction(OPC_ADC, 4, 3, cpu.adc, AM_ABSOLUTE)
+	cpu.instructions[0x7d] = NewInstruction(OPC_ADC, 4, 3, cpu.adc, AM_INDEXED_X)
+	cpu.instructions[0x79] = NewInstruction(OPC_ADC, 4, 3, cpu.adc, AM_INDEXED_Y)
+	cpu.instructions[0x61] = NewInstruction(OPC_ADC, 6, 2, cpu.adc, AM_PRE_INDEXED)
+	cpu.instructions[0x71] = NewInstruction(OPC_ADC, 5, 2, cpu.adc, AM_POST_INDEXED)
 
 	// AND
-	cpu.instructions[0x29] = &Instruction{name: "AND", cycles: 2, execute: cpu.and, size: 2, mode: AM_IMMEDIATE}
-	cpu.instructions[0x25] = &Instruction{name: "AND", cycles: 3, execute: cpu.and, size: 2, mode: AM_ZEROPAGE}
-	cpu.instructions[0x35] = &Instruction{name: "AND", cycles: 4, execute: cpu.and, size: 2, mode: AM_ZEROPAGE_X}
-	cpu.instructions[0x2d] = &Instruction{name: "AND", cycles: 4, execute: cpu.and, size: 3, mode: AM_ABSOLUTE}
-	cpu.instructions[0x3d] = &Instruction{name: "AND", cycles: 4, execute: cpu.and, size: 3, mode: AM_INDEXED_X}
-	cpu.instructions[0x39] = &Instruction{name: "AND", cycles: 4, execute: cpu.and, size: 3, mode: AM_INDEXED_Y}
-	cpu.instructions[0x21] = &Instruction{name: "AND", cycles: 6, execute: cpu.and, size: 2, mode: AM_PRE_INDEXED}
-	cpu.instructions[0x31] = &Instruction{name: "AND", cycles: 5, execute: cpu.and, size: 2, mode: AM_POST_INDEXED}
+	cpu.instructions[0x29] = NewInstruction(OPC_AND, 2, 2, cpu.and, AM_IMMEDIATE)
+	cpu.instructions[0x25] = NewInstruction(OPC_AND, 3, 2, cpu.and, AM_ZEROPAGE)
+	cpu.instructions[0x35] = NewInstruction(OPC_AND, 4, 2, cpu.and, AM_ZEROPAGE_X)
+	cpu.instructions[0x2d] = NewInstruction(OPC_AND, 4, 3, cpu.and, AM_ABSOLUTE)
+	cpu.instructions[0x3d] = NewInstruction(OPC_AND, 4, 3, cpu.and, AM_INDEXED_X)
+	cpu.instructions[0x39] = NewInstruction(OPC_AND, 4, 3, cpu.and, AM_INDEXED_Y)
+	cpu.instructions[0x21] = NewInstruction(OPC_AND, 6, 2, cpu.and, AM_PRE_INDEXED)
+	cpu.instructions[0x31] = NewInstruction(OPC_AND, 5, 2, cpu.and, AM_POST_INDEXED)
 
 	// ASL
 
 	// CLC
-	cpu.instructions[0x18] = &Instruction{name: "CLC", cycles: 2, execute: cpu.clc, size: 1, mode: AM_IMPLIED}
+	cpu.instructions[0x18] = NewInstruction(OPC_CLC, 2, 1, cpu.clc, AM_IMPLIED)
 
 	// CLD
-	cpu.instructions[0xd8] = &Instruction{name: "CLD", cycles: 2, execute: cpu.cld, size: 1, mode: AM_IMPLIED}
+	cpu.instructions[0xd8] = NewInstruction(OPC_CLD, 2, 1, cpu.cld, AM_IMPLIED)
 
 	// CLI
-	cpu.instructions[0x58] = &Instruction{name: "CLI", cycles: 2, execute: cpu.cli, size: 1, mode: AM_IMPLIED}
+	cpu.instructions[0x58] = NewInstruction(OPC_CLI, 2, 1, cpu.cli, AM_IMPLIED)
 
 	// CLV
-	cpu.instructions[0xb8] = &Instruction{name: "CLV", cycles: 2, execute: cpu.clv, size: 1, mode: AM_IMPLIED}
+	cpu.instructions[0xb8] = NewInstruction(OPC_CLV, 2, 1, cpu.clv, AM_IMPLIED)
 
 	// INC
-	cpu.instructions[0xe6] = &Instruction{name: "INC", cycles: 5, execute: cpu.inc, size: 2, mode: AM_ZEROPAGE}
-	cpu.instructions[0xf6] = &Instruction{name: "INC", cycles: 6, execute: cpu.inc, size: 2, mode: AM_ZEROPAGE_X}
-	cpu.instructions[0xee] = &Instruction{name: "INC", cycles: 6, execute: cpu.inc, size: 3, mode: AM_ABSOLUTE}
-	cpu.instructions[0xfe] = &Instruction{name: "INC", cycles: 7, execute: cpu.inc, size: 3, mode: AM_INDEXED_X}
+	cpu.instructions[0xe6] = NewInstruction(OPC_INC, 5, 2, cpu.inc, AM_ZEROPAGE)
+	cpu.instructions[0xf6] = NewInstruction(OPC_INC, 6, 2, cpu.inc, AM_ZEROPAGE_X)
+	cpu.instructions[0xee] = NewInstruction(OPC_INC, 6, 3, cpu.inc, AM_ABSOLUTE)
+	cpu.instructions[0xfe] = NewInstruction(OPC_INC, 7, 3, cpu.inc, AM_INDEXED_X)
 
 	// INX
-	cpu.instructions[0xe8] = &Instruction{name: "INX", cycles: 2, execute: cpu.inx, size: 1, mode: AM_IMPLIED}
+	cpu.instructions[0xe8] = NewInstruction(OPC_INX, 2, 1, cpu.inx, AM_IMPLIED)
 
 	// INY
-	cpu.instructions[0xc8] = &Instruction{name: "INY", cycles: 2, execute: cpu.iny, size: 1, mode: AM_IMPLIED}
+	cpu.instructions[0xc8] = NewInstruction(OPC_INY, 2, 1, cpu.iny, AM_IMPLIED)
 
 	// JMP
-	cpu.instructions[0x4c] = &Instruction{name: "JMP", cycles: 3, execute: cpu.jmp, size: 3, mode: AM_ABSOLUTE}
-	cpu.instructions[0x6c] = &Instruction{name: "JMP", cycles: 5, execute: cpu.jmp, size: 3, mode: AM_INDIRECT}
+	cpu.instructions[0x4c] = NewInstruction(OPC_JMP, 3, 3, cpu.jmp, AM_ABSOLUTE)
+	cpu.instructions[0x6c] = NewInstruction(OPC_JMP, 5, 3, cpu.jmp, AM_INDIRECT)
 
 	// JSR
-	cpu.instructions[0x20] = &Instruction{name: "JSR", cycles: 6, execute: cpu.jsr, size: 3, mode: AM_ABSOLUTE}
+	cpu.instructions[0x20] = NewInstruction(OPC_JSR, 6, 3, cpu.jsr, AM_ABSOLUTE)
 
 	// NOP
-	cpu.instructions[0xea] = &Instruction{
-		name:    "NOP",
-		cycles:  2,
-		execute: cpu.nop,
-		size:    1,
-		mode:    AM_IMPLIED,
-	}
+	cpu.instructions[0xea] = NewInstruction(OPC_NOP, 2, 1, cpu.nop, AM_IMPLIED)
 
 	// LDA
-	cpu.instructions[0xa9] = &Instruction{
-		name:    "LDA",
-		cycles:  2,
-		execute: cpu.lda,
-		size:    2,
-		mode:    AM_IMMEDIATE,
-	}
-	cpu.instructions[0xa5] = &Instruction{
-		name:    "LDA",
-		cycles:  3,
-		execute: cpu.lda,
-		size:    2,
-		mode:    AM_ZEROPAGE,
-	}
-	cpu.instructions[0xb5] = &Instruction{
-		name:    "LDA",
-		cycles:  4,
-		execute: cpu.lda,
-		size:    2,
-		mode:    AM_ZEROPAGE_X,
-	}
-	cpu.instructions[0xad] = &Instruction{
-		name:    "LDA",
-		cycles:  4,
-		execute: cpu.lda,
-		size:    3,
-		mode:    AM_ABSOLUTE,
-	}
-	cpu.instructions[0xbd] = &Instruction{
-		name:    "LDA",
-		cycles:  4,
-		execute: cpu.lda,
-		size:    3,
-		mode:    AM_INDEXED_X,
-	}
-	cpu.instructions[0xb9] = &Instruction{
-		name:    "LDA",
-		cycles:  4,
-		execute: cpu.lda,
-		size:    3,
-		mode:    AM_INDEXED_Y,
-	}
-	cpu.instructions[0xa1] = &Instruction{
-		name:    "LDA",
-		cycles:  6,
-		execute: cpu.lda,
-		size:    2,
-		mode:    AM_PRE_INDEXED,
-	}
-	cpu.instructions[0xb1] = &Instruction{
-		name:    "LDA",
-		cycles:  5,
-		execute: cpu.lda,
-		size:    2,
-		mode:    AM_POST_INDEXED,
-	}
+	cpu.instructions[0xa9] = NewInstruction(OPC_LDA, 2, 2, cpu.lda, AM_IMMEDIATE)
+	cpu.instructions[0xa5] = NewInstruction(OPC_LDA, 3, 2, cpu.lda, AM_ZEROPAGE)
+	cpu.instructions[0xb5] = NewInstruction(OPC_LDA, 4, 2, cpu.lda, AM_ZEROPAGE_X)
+	cpu.instructions[0xad] = NewInstruction(OPC_LDA, 4, 3, cpu.lda, AM_ABSOLUTE)
+	cpu.instructions[0xbd] = NewInstruction(OPC_LDA, 4, 3, cpu.lda, AM_INDEXED_X)
+	cpu.instructions[0xb9] = NewInstruction(OPC_LDA, 4, 3, cpu.lda, AM_INDEXED_Y)
+	cpu.instructions[0xa1] = NewInstruction(OPC_LDA, 6, 2, cpu.lda, AM_PRE_INDEXED)
+	cpu.instructions[0xb1] = NewInstruction(OPC_LDA, 5, 2, cpu.lda, AM_POST_INDEXED)
 
 	// LDX
-	cpu.instructions[0xa2] = &Instruction{name: "LDX", cycles: 2, execute: cpu.ldx, size: 2, mode: AM_IMMEDIATE}
-	cpu.instructions[0xa6] = &Instruction{name: "LDX", cycles: 3, execute: cpu.ldx, size: 2, mode: AM_ZEROPAGE}
-	cpu.instructions[0xb6] = &Instruction{name: "LDX", cycles: 4, execute: cpu.ldx, size: 2, mode: AM_ZEROPAGE_Y}
-	cpu.instructions[0xae] = &Instruction{name: "LDX", cycles: 4, execute: cpu.ldx, size: 3, mode: AM_ABSOLUTE}
-	cpu.instructions[0xbe] = &Instruction{name: "LDX", cycles: 4, execute: cpu.ldx, size: 3, mode: AM_INDEXED_Y}
+	cpu.instructions[0xa2] = NewInstruction(OPC_LDX, 2, 2, cpu.ldx, AM_IMMEDIATE)
+	cpu.instructions[0xa6] = NewInstruction(OPC_LDX, 3, 2, cpu.ldx, AM_ZEROPAGE)
+	cpu.instructions[0xb6] = NewInstruction(OPC_LDX, 4, 2, cpu.ldx, AM_ZEROPAGE_Y)
+	cpu.instructions[0xae] = NewInstruction(OPC_LDX, 4, 3, cpu.ldx, AM_ABSOLUTE)
+	cpu.instructions[0xbe] = NewInstruction(OPC_LDX, 4, 3, cpu.ldx, AM_INDEXED_Y)
 
 	// LDY
-	cpu.instructions[0xa0] = &Instruction{name: "LDY", cycles: 2, execute: cpu.ldy, size: 2, mode: AM_IMMEDIATE}
-	cpu.instructions[0xa4] = &Instruction{name: "LDY", cycles: 3, execute: cpu.ldy, size: 2, mode: AM_ZEROPAGE}
-	cpu.instructions[0xb4] = &Instruction{name: "LDY", cycles: 4, execute: cpu.ldy, size: 2, mode: AM_ZEROPAGE_Y}
-	cpu.instructions[0xac] = &Instruction{name: "LDY", cycles: 4, execute: cpu.ldy, size: 3, mode: AM_ABSOLUTE}
-	cpu.instructions[0xbc] = &Instruction{name: "LDY", cycles: 4, execute: cpu.ldy, size: 3, mode: AM_INDEXED_Y}
+	cpu.instructions[0xa0] = NewInstruction(OPC_LDY, 2, 2, cpu.ldy, AM_IMMEDIATE)
+	cpu.instructions[0xa4] = NewInstruction(OPC_LDY, 3, 2, cpu.ldy, AM_ZEROPAGE)
+	cpu.instructions[0xb4] = NewInstruction(OPC_LDY, 4, 2, cpu.ldy, AM_ZEROPAGE_Y)
+	cpu.instructions[0xac] = NewInstruction(OPC_LDY, 4, 3, cpu.ldy, AM_ABSOLUTE)
+	cpu.instructions[0xbc] = NewInstruction(OPC_LDY, 4, 3, cpu.ldy, AM_INDEXED_Y)
+
+	// LSR
+	cpu.instructions[0x4a] = NewInstruction(OPC_LSR, 2, 1, cpu.lsr, AM_IMPLIED)
+	cpu.instructions[0x46] = NewInstruction(OPC_LSR, 5, 2, cpu.lsr, AM_ZEROPAGE)
+	cpu.instructions[0x56] = NewInstruction(OPC_LSR, 6, 2, cpu.lsr, AM_ZEROPAGE_X)
+	cpu.instructions[0x4e] = NewInstruction(OPC_LSR, 6, 3, cpu.lsr, AM_ABSOLUTE)
+	cpu.instructions[0x5e] = NewInstruction(OPC_LSR, 7, 3, cpu.lsr, AM_INDEXED_X)
 
 	// STA
-	cpu.instructions[0x85] = &Instruction{name: "STA", cycles: 3, execute: cpu.sta, size: 2, mode: AM_ZEROPAGE}
-	cpu.instructions[0x95] = &Instruction{name: "STA", cycles: 4, execute: cpu.sta, size: 2, mode: AM_ZEROPAGE_X}
-	cpu.instructions[0x8d] = &Instruction{name: "STA", cycles: 4, execute: cpu.sta, size: 3, mode: AM_ABSOLUTE}
-	cpu.instructions[0x9d] = &Instruction{name: "STA", cycles: 5, execute: cpu.sta, size: 3, mode: AM_INDEXED_X}
-	cpu.instructions[0x99] = &Instruction{name: "STA", cycles: 5, execute: cpu.sta, size: 3, mode: AM_INDEXED_Y}
-	cpu.instructions[0x81] = &Instruction{name: "STA", cycles: 6, execute: cpu.sta, size: 2, mode: AM_PRE_INDEXED}
-	cpu.instructions[0x91] = &Instruction{name: "STA", cycles: 6, execute: cpu.sta, size: 2, mode: AM_POST_INDEXED}
+	cpu.instructions[0x85] = NewInstruction(OPC_STA, 3, 2, cpu.sta, AM_ZEROPAGE)
+	cpu.instructions[0x95] = NewInstruction(OPC_STA, 4, 2, cpu.sta, AM_ZEROPAGE_X)
+	cpu.instructions[0x8d] = NewInstruction(OPC_STA, 4, 3, cpu.sta, AM_ABSOLUTE)
+	cpu.instructions[0x9d] = NewInstruction(OPC_STA, 5, 3, cpu.sta, AM_INDEXED_X)
+	cpu.instructions[0x99] = NewInstruction(OPC_STA, 5, 3, cpu.sta, AM_INDEXED_Y)
+	cpu.instructions[0x81] = NewInstruction(OPC_STA, 6, 2, cpu.sta, AM_PRE_INDEXED)
+	cpu.instructions[0x91] = NewInstruction(OPC_STA, 6, 2, cpu.sta, AM_POST_INDEXED)
 
 	return &cpu
 }
@@ -226,4 +179,10 @@ func (cpu *MOS6502) Cycle() {
 	cpu.wait = instruction.cycles - 1
 
 	instruction.execute(operand)
+}
+
+// push a byte onto the stack
+func (cpu *MOS6502) push(b uint8) {
+	cpu.memory[0x100+uint16(cpu.sp)] = b
+	cpu.sp--
 }

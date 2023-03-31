@@ -4,6 +4,301 @@ import (
 	"testing"
 )
 
+func TestADC(t *testing.T) {
+	tests := testCases{
+		{
+			name:        "add with carry",
+			program:     []uint8{0x69, 0x02},
+			cycles:      2,
+			setupA:      newUint8(0xff),
+			expectA:     newUint8(0x01),
+			expectCarry: true,
+		},
+		{
+			name:        "add to zero",
+			program:     []uint8{0x69, 0x02},
+			cycles:      2,
+			setupA:      newUint8(0xfe),
+			expectA:     newUint8(0x00),
+			expectCarry: true,
+			expectZero:  true,
+		},
+		{
+			name:           "127 + 1 = 128, returns V = 1",
+			program:        []uint8{0x69, 0x01},
+			setupA:         newUint8(0x7f),
+			expectOverflow: true,
+			expectNegative: true,
+			cycles:         2,
+		},
+		{
+			name:    "adds two positive numbers without carry",
+			program: []uint8{0x69, 0x0f},
+			cycles:  2,
+			expectA: newUint8(0x1f),
+			setupA:  newUint8(0x10),
+		},
+		{
+			name:    "immediate without carry",
+			program: []uint8{0x69, 0x42},
+			cycles:  2,
+			expectA: newUint8(0x43),
+			setupA:  newUint8(0x01),
+		},
+		{
+			name:           "zero page without carry",
+			program:        []uint8{0x65, 0x42},
+			memory:         map[uint16]uint8{0x42: 0x80},
+			cycles:         3,
+			expectA:        newUint8(0x81),
+			setupA:         newUint8(0x01),
+			expectNegative: true,
+		},
+		{
+			name:           "absolute without carry",
+			program:        []uint8{0x6d, 0x00, 0x04},
+			memory:         map[uint16]uint8{0x0400: 0x42},
+			cycles:         4,
+			expectA:        newUint8(0x43),
+			expectCarry:    false,
+			expectOverflow: false,
+			expectNegative: false,
+			setupA:         newUint8(0x01),
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestAND(t *testing.T) {
+	tests := testCases{
+		{
+			name:           "immediate",
+			program:        []uint8{0x29, 0xAA},
+			cycles:         2,
+			expectA:        newUint8(0xAA),
+			expectNegative: true,
+			setupA:         newUint8(0xFF),
+		},
+		{
+			name:    "zeropage",
+			program: []uint8{0x25, 0x42},
+			memory:  map[uint16]uint8{0x42: 0x0F},
+			cycles:  3,
+			expectA: newUint8(0x0E),
+			setupA:  newUint8(0xDE),
+		},
+		{
+			name:           "absolute",
+			program:        []uint8{0x2D, 0x00, 0x04},
+			memory:         map[uint16]uint8{0x0400: 0xF0},
+			cycles:         4,
+			expectA:        newUint8(0xC0),
+			expectNegative: true,
+			setupA:         newUint8(0xC0),
+		},
+	}
+	tests.run(t)
+}
+
+func TestCLC(t *testing.T) {
+	tests := testCases{
+		{
+			name:        "clear carry",
+			program:     []uint8{0x18},
+			setupCarry:  newBool(true),
+			expectCarry: false,
+			cycles:      2,
+		},
+		{
+			name:        "clear unset carry",
+			program:     []uint8{0x18},
+			expectCarry: false,
+			cycles:      2,
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestCLD(t *testing.T) {
+	tests := testCases{
+		{
+			name:          "clear decimal",
+			program:       []uint8{0xd8},
+			setupDecimal:  newBool(true),
+			expectDecimal: newBool(false),
+			cycles:        2,
+		},
+		{
+			name:          "clear unset decimal",
+			program:       []uint8{0xd8},
+			expectDecimal: newBool(false),
+			cycles:        2,
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestCLI(t *testing.T) {
+	tests := testCases{
+		{
+			name:                   "clear interrupt",
+			program:                []uint8{0x58},
+			setupInterruptDisable:  newBool(true),
+			expectInterruptDisable: newBool(false),
+			cycles:                 2,
+		},
+		{
+			name:                   "clear unset interrupt",
+			program:                []uint8{0x58},
+			expectInterruptDisable: newBool(false),
+			cycles:                 2,
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestCLV(t *testing.T) {
+	tests := testCases{
+		{
+			name:           "clear overflow",
+			program:        []uint8{0xb8},
+			setupOverflow:  newBool(true),
+			expectOverflow: false,
+			cycles:         2,
+		},
+		{
+			name:           "clear unset overflow",
+			program:        []uint8{0xb8},
+			expectOverflow: false,
+			cycles:         2,
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestINX(t *testing.T) {
+	tests := testCases{
+		{
+			name:    "inx 0x0",
+			program: []uint8{0xe8},
+			expectX: newUint8(0x1),
+			cycles:  2,
+		},
+		{
+			name:    "inx 0aa",
+			program: []uint8{0xe8},
+			setupX:  newUint8(0x0a),
+			expectX: newUint8(0x0b),
+			cycles:  2,
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestINY(t *testing.T) {
+	tests := testCases{
+		{
+			name:    "iny 0x0",
+			program: []uint8{0xc8},
+			expectY: newUint8(0x1),
+			cycles:  2,
+		},
+		{
+			name:    "iny 0aa",
+			program: []uint8{0xc8},
+			expectY: newUint8(0x0b),
+			setupY:  newUint8(0x0a),
+			cycles:  2,
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestINC(t *testing.T) {
+	tests := testCases{
+		{
+			name:         "zeropage",
+			program:      []uint8{0xe6, 0x42},
+			memory:       map[uint16]uint8{0x0042: 0x09},
+			cycles:       5,
+			expectMemory: map[uint16]uint8{0x0042: 0x0a},
+		},
+		{
+			name:         "zeropage,x",
+			program:      []uint8{0xf6, 0x42},
+			memory:       map[uint16]uint8{0x0043: 0x09},
+			cycles:       6,
+			expectMemory: map[uint16]uint8{0x0043: 0x0a},
+			setupX:       newUint8(0x1),
+		},
+		{
+			name:         "absolute",
+			program:      []uint8{0xee, 0x42, 0xaa},
+			memory:       map[uint16]uint8{0xaa42: 0x09},
+			cycles:       6,
+			expectMemory: map[uint16]uint8{0xaa42: 0x0a},
+		},
+		{
+			name:         "absolute,x",
+			program:      []uint8{0xfe, 0x42, 0xaa},
+			memory:       map[uint16]uint8{0xaa43: 0x09},
+			cycles:       7,
+			expectMemory: map[uint16]uint8{0xaa43: 0x0a},
+			setupX:       newUint8(0x1),
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestJMP(t *testing.T) {
+	tests := testCases{
+		{
+			name:     "absolute",
+			program:  []uint8{0x4c, 0x00, 0x04},
+			cycles:   3,
+			expectPC: newUint16(0x0400),
+		},
+		{
+			name:    "indirect",
+			program: []uint8{0x6c, 0x00, 0x04},
+			memory: map[uint16]uint8{
+				0x0400: 0x42,
+				0x0401: 0x23,
+				0x042:  0x23,
+				0x043:  0x42,
+			},
+			cycles:   5,
+			expectPC: newUint16(0x2342),
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestJSR(t *testing.T) {
+	tests := testCases{
+		{
+			name:    "jsr",
+			program: []uint8{0x20, 0x01, 0x04},
+			expectMemory: map[uint16]uint8{
+				0x01fd: 0x01,
+				0x01fc: 0x04,
+			},
+			cycles: 6,
+		},
+	}
+
+	tests.run(t)
+}
+
 func TestLDA(t *testing.T) {
 	tests := testCases{
 		{
@@ -194,6 +489,57 @@ func TestLDY(t *testing.T) {
 	tests.run(t)
 }
 
+func TestLSR(t *testing.T) {
+	tests := testCases{
+		{
+			name:    "accumulator",
+			program: []uint8{0x4a},
+			expectA: newUint8(0x55),
+			cycles:  2,
+		},
+		{
+			name:       "accumulator 0",
+			program:    []uint8{0x4a},
+			setupA:     newUint8(0x00),
+			expectA:    newUint8(0x00),
+			cycles:     2,
+			expectZero: true,
+		},
+		{
+			name:         "zeropage",
+			program:      []uint8{0x46, 0x42},
+			memory:       map[uint16]uint8{0x0042: 0x55},
+			cycles:       5,
+			expectMemory: map[uint16]uint8{0x0042: 0x2a},
+		},
+		{
+			name:         "zeropage,x",
+			program:      []uint8{0x56, 0x42},
+			memory:       map[uint16]uint8{0x0047: 0x55},
+			cycles:       6,
+			expectMemory: map[uint16]uint8{0x0047: 0x2a},
+			setupX:       newUint8(0x5),
+		},
+		{
+			name:         "absolute",
+			program:      []uint8{0x4e, 0x42},
+			memory:       map[uint16]uint8{0x0042: 0x55},
+			cycles:       6,
+			expectMemory: map[uint16]uint8{0x0042: 0x2a},
+		},
+		{
+			name:         "absolute,x",
+			program:      []uint8{0x5e, 0x42},
+			memory:       map[uint16]uint8{0x0047: 0x55},
+			cycles:       7,
+			expectMemory: map[uint16]uint8{0x0047: 0x2a},
+			setupX:       newUint8(0x5),
+		},
+	}
+
+	tests.run(t)
+}
+
 func TestSTA(t *testing.T) {
 	tests := testCases{
 		{
@@ -254,284 +600,5 @@ func TestSTA(t *testing.T) {
 		},
 	}
 
-	tests.run(t)
-}
-
-func TestCLC(t *testing.T) {
-	tests := testCases{
-		{
-			name:        "clear carry",
-			program:     []uint8{0x18},
-			setupCarry:  newBool(true),
-			expectCarry: false,
-			cycles:      2,
-		},
-		{
-			name:        "clear unset carry",
-			program:     []uint8{0x18},
-			expectCarry: false,
-			cycles:      2,
-		},
-	}
-
-	tests.run(t)
-}
-
-func TestCLD(t *testing.T) {
-	tests := testCases{
-		{
-			name:          "clear decimal",
-			program:       []uint8{0xd8},
-			setupDecimal:  newBool(true),
-			expectDecimal: newBool(false),
-			cycles:        2,
-		},
-		{
-			name:          "clear unset decimal",
-			program:       []uint8{0xd8},
-			expectDecimal: newBool(false),
-			cycles:        2,
-		},
-	}
-
-	tests.run(t)
-}
-
-func TestCLI(t *testing.T) {
-	tests := testCases{
-		{
-			name:                   "clear interrupt",
-			program:                []uint8{0x58},
-			setupInterruptDisable:  newBool(true),
-			expectInterruptDisable: newBool(false),
-			cycles:                 2,
-		},
-		{
-			name:                   "clear unset interrupt",
-			program:                []uint8{0x58},
-			expectInterruptDisable: newBool(false),
-			cycles:                 2,
-		},
-	}
-
-	tests.run(t)
-}
-
-func TestCLV(t *testing.T) {
-	tests := testCases{
-		{
-			name:           "clear overflow",
-			program:        []uint8{0xb8},
-			setupOverflow:  newBool(true),
-			expectOverflow: false,
-			cycles:         2,
-		},
-		{
-			name:           "clear unset overflow",
-			program:        []uint8{0xb8},
-			expectOverflow: false,
-			cycles:         2,
-		},
-	}
-
-	tests.run(t)
-}
-
-func TestINX(t *testing.T) {
-	tests := testCases{
-		{
-			name:    "inx 0x0",
-			program: []uint8{0xe8},
-			expectX: newUint8(0x1),
-			cycles:  2,
-		},
-		{
-			name:    "inx 0aa",
-			program: []uint8{0xe8},
-			setupX:  newUint8(0x0a),
-			expectX: newUint8(0x0b),
-			cycles:  2,
-		},
-	}
-
-	tests.run(t)
-}
-
-func TestINY(t *testing.T) {
-	tests := testCases{
-		{
-			name:    "iny 0x0",
-			program: []uint8{0xc8},
-			expectY: newUint8(0x1),
-			cycles:  2,
-		},
-		{
-			name:    "iny 0aa",
-			program: []uint8{0xc8},
-			expectY: newUint8(0x0b),
-			setupY:  newUint8(0x0a),
-			cycles:  2,
-		},
-	}
-
-	tests.run(t)
-}
-
-func TestINC(t *testing.T) {
-	tests := testCases{
-		{
-			name:         "zeropage",
-			program:      []uint8{0xe6, 0x42},
-			memory:       map[uint16]uint8{0x0042: 0x09},
-			cycles:       5,
-			expectMemory: map[uint16]uint8{0x0042: 0x0a},
-		},
-		{
-			name:         "zeropage,x",
-			program:      []uint8{0xf6, 0x42},
-			memory:       map[uint16]uint8{0x0043: 0x09},
-			cycles:       6,
-			expectMemory: map[uint16]uint8{0x0043: 0x0a},
-			setupX:       newUint8(0x1),
-		},
-		{
-			name:         "absolute",
-			program:      []uint8{0xee, 0x42, 0xaa},
-			memory:       map[uint16]uint8{0xaa42: 0x09},
-			cycles:       6,
-			expectMemory: map[uint16]uint8{0xaa42: 0x0a},
-		},
-		{
-			name:         "absolute,x",
-			program:      []uint8{0xfe, 0x42, 0xaa},
-			memory:       map[uint16]uint8{0xaa43: 0x09},
-			cycles:       7,
-			expectMemory: map[uint16]uint8{0xaa43: 0x0a},
-			setupX:       newUint8(0x1),
-		},
-	}
-
-	tests.run(t)
-}
-
-func TestJMP(t *testing.T) {
-	tests := testCases{
-		{
-			name:     "absolute",
-			program:  []uint8{0x4c, 0x00, 0x04},
-			cycles:   3,
-			expectPC: newUint16(0x0400),
-		},
-		{
-			name:    "indirect",
-			program: []uint8{0x6c, 0x00, 0x04},
-			memory: map[uint16]uint8{
-				0x0400: 0x42,
-				0x0401: 0x23,
-				0x042:  0x23,
-				0x043:  0x42,
-			},
-			cycles:   5,
-			expectPC: newUint16(0x2342),
-		},
-	}
-
-	tests.run(t)
-}
-
-func TestADC(t *testing.T) {
-	tests := testCases{
-		{
-			name:        "add with carry",
-			program:     []uint8{0x69, 0x02},
-			cycles:      2,
-			setupA:      newUint8(0xff),
-			expectA:     newUint8(0x01),
-			expectCarry: true,
-		},
-		{
-			name:        "add to zero",
-			program:     []uint8{0x69, 0x02},
-			cycles:      2,
-			setupA:      newUint8(0xfe),
-			expectA:     newUint8(0x00),
-			expectCarry: true,
-			expectZero:  true,
-		},
-		{
-			name:           "127 + 1 = 128, returns V = 1",
-			program:        []uint8{0x69, 0x01},
-			setupA:         newUint8(0x7f),
-			expectOverflow: true,
-			expectNegative: true,
-			cycles:         2,
-		},
-		{
-			name:    "adds two positive numbers without carry",
-			program: []uint8{0x69, 0x0f},
-			cycles:  2,
-			expectA: newUint8(0x1f),
-			setupA:  newUint8(0x10),
-		},
-		{
-			name:    "immediate without carry",
-			program: []uint8{0x69, 0x42},
-			cycles:  2,
-			expectA: newUint8(0x43),
-			setupA:  newUint8(0x01),
-		},
-		{
-			name:           "zero page without carry",
-			program:        []uint8{0x65, 0x42},
-			memory:         map[uint16]uint8{0x42: 0x80},
-			cycles:         3,
-			expectA:        newUint8(0x81),
-			setupA:         newUint8(0x01),
-			expectNegative: true,
-		},
-		{
-			name:           "absolute without carry",
-			program:        []uint8{0x6d, 0x00, 0x04},
-			memory:         map[uint16]uint8{0x0400: 0x42},
-			cycles:         4,
-			expectA:        newUint8(0x43),
-			expectCarry:    false,
-			expectOverflow: false,
-			expectNegative: false,
-			setupA:         newUint8(0x01),
-		},
-	}
-
-	tests.run(t)
-}
-
-func TestAND(t *testing.T) {
-	tests := testCases{
-		{
-			name:           "immediate",
-			program:        []uint8{0x29, 0xAA},
-			cycles:         2,
-			expectA:        newUint8(0xAA),
-			expectNegative: true,
-			setupA:         newUint8(0xFF),
-		},
-		{
-			name:    "zeropage",
-			program: []uint8{0x25, 0x42},
-			memory:  map[uint16]uint8{0x42: 0x0F},
-			cycles:  3,
-			expectA: newUint8(0x0E),
-			setupA:  newUint8(0xDE),
-		},
-		{
-			name:           "absolute",
-			program:        []uint8{0x2D, 0x00, 0x04},
-			memory:         map[uint16]uint8{0x0400: 0xF0},
-			cycles:         4,
-			expectA:        newUint8(0xC0),
-			expectNegative: true,
-			setupA:         newUint8(0xC0),
-		},
-	}
 	tests.run(t)
 }

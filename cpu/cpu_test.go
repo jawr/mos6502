@@ -148,6 +148,27 @@ func (tc *testCase) setup(t *testing.T) *MOS6502 {
 	// setup state
 	cpu := setup(tc.program, tc.memory)
 
+	// setup program expected memory
+	if len(tc.expectMemory) > 0 {
+		for i := 0; i < len(tc.program); i++ {
+			tc.expectMemory[uint16(0xdd00+i)] = tc.program[i]
+		}
+		// play memory over the top
+		for address, b := range cpu.memory {
+			if b == 0 {
+				continue
+			}
+			// if we have a value already, prefer expected memory
+			if _, ok := tc.expectMemory[uint16(address)]; ok {
+				continue
+			}
+			tc.expectMemory[uint16(address)] = b
+		}
+		// add the reset vector
+		tc.expectMemory[0xfffc] = 0x00
+		tc.expectMemory[0xfffd] = 0xdd
+	}
+
 	setupUint8(&cpu.a, tc.setupA)
 	setupUint8(&cpu.x, tc.setupX)
 	setupUint8(&cpu.y, tc.setupY)
@@ -204,7 +225,8 @@ func (tc *testCase) run(t *testing.T, cpu *MOS6502) {
 		// expectFlag(t, cpu, P_Reserved, tc.expectReserved)
 
 		if tc.expectMemory != nil {
-			for address, expected := range tc.expectMemory {
+			for address := range cpu.memory {
+				expected := tc.expectMemory[uint16(address)]
 				if cpu.memory[address] != expected {
 					t.Errorf("expected memory %04x to be %02x got %02x", address, expected, cpu.memory[address])
 				}
