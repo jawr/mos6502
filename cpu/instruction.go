@@ -52,6 +52,7 @@ const (
 	OPC_BMI = "BMI"
 	OPC_BNE = "BNE"
 	OPC_BPL = "BPL"
+	OPC_BRK = "BRK"
 	OPC_CLC = "CLC"
 	OPC_CLD = "CLD"
 	OPC_CLI = "CLI"

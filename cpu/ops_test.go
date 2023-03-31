@@ -345,6 +345,32 @@ func TestBPL(t *testing.T) {
 	tests.run(t)
 }
 
+func TestBRK(t *testing.T) {
+	tests := testCases{
+		{
+			name: "BRK sets B flag and pushes PC and status to stack",
+			program: []uint8{
+				0x00, // BRK
+			},
+			memory: map[uint16]uint8{
+				0xfffa: 0x10,
+				0xfffb: 0x10,
+			},
+			expectPC: newUint16(0x1010),
+			expectSP: newUint8(0xfd - 0x03), // lo, hi, pc
+			expectMemory: map[uint16]uint8{
+				0x01fd: 0xdd, // push PC high byte
+				0x01fc: 0x01, // push PC low byte
+				0x01fb: 0x34, // push status with B flag set
+			},
+			cycles:                 7,
+			expectBreak:            true,
+			expectInterruptDisable: newBool(true),
+		},
+	}
+	tests.run(t)
+}
+
 func TestCLC(t *testing.T) {
 	tests := testCases{
 		{
@@ -638,7 +664,7 @@ func TestLDA(t *testing.T) {
 				0x0070: 0x43,
 				0x53:   0x23,
 			},
-			cycles:  6,
+			cycles:  5,
 			setupY:  newUint8(0x10),
 			expectA: newUint8(0x23),
 		},
@@ -863,7 +889,7 @@ func TestORA(t *testing.T) {
 		{
 			name:    "(indirect),y",
 			program: []uint8{0x11, 0xaa},
-			cycles:  6,
+			cycles:  5,
 			memory: map[uint16]uint8{
 				0xaa: 0xcc,
 				0xcd: 0x42,

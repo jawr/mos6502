@@ -1,5 +1,7 @@
 package cpu
 
+import "fmt"
+
 type MOS6502 struct {
 	// main register
 	a uint8
@@ -85,6 +87,9 @@ func NewMOS6502() *MOS6502 {
 
 	// BPL
 	cpu.instructions[0x10] = NewInstruction(OPC_BPL, 2, 2, cpu.bpl, AM_RELATIVE)
+
+	// BRK
+	cpu.instructions[0x00] = NewInstruction(OPC_BRK, 7, 1, cpu.brk, AM_IMPLIED)
 
 	// CLC
 	cpu.instructions[0x18] = NewInstruction(OPC_CLC, 2, 1, cpu.clc, AM_IMPLIED)
@@ -218,4 +223,12 @@ func (cpu *MOS6502) Cycle() {
 func (cpu *MOS6502) push(b uint8) {
 	cpu.memory[0x100+uint16(cpu.sp)] = b
 	cpu.sp--
+}
+
+func fmt8(n string, b uint8) {
+	fmt.Printf("%s\t%08b\t%02x\n", n, b, b)
+}
+
+func fmt16(n string, b uint16) {
+	fmt.Printf("%s\t%08b\t%04x\n", n, b, b)
 }

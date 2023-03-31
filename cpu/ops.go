@@ -119,6 +119,26 @@ func (cpu *MOS6502) bpl(ins *instruction, address uint16) {
 	cpu.pc = address
 }
 
+func (cpu *MOS6502) brk(ins *instruction, address uint16) {
+	// Force Break
+	// push return address to stack
+	cpu.push(uint8(cpu.pc >> 8))
+	cpu.push(uint8(cpu.pc & 0xff))
+
+	// push status register to stack with break flag set
+	cpu.p.set(P_Break)
+	cpu.push(uint8(cpu.p))
+
+	// set intterupt disable
+	cpu.p.set(P_InterruptDisable)
+
+	// push interrupt vector to pc
+	hi := uint16(cpu.memory.Read(0xfffa)) << 8
+	lo := uint16(cpu.memory.Read(0xfffb))
+
+	cpu.pc = uint16(lo | hi)
+}
+
 func (cpu *MOS6502) clc(ins *instruction, address uint16) {
 	// Clear Carry Flag
 	cpu.p.clear(P_Carry)
