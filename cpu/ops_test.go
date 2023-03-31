@@ -66,7 +66,6 @@ func TestADC(t *testing.T) {
 			setupA:         newUint8(0x01),
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -153,7 +152,6 @@ func TestASL(t *testing.T) {
 			setupX:         newUint8(0x5),
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -175,7 +173,6 @@ func TestBCC(t *testing.T) {
 			cycles:      2,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -197,7 +194,6 @@ func TestBCS(t *testing.T) {
 			cycles:      2,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -219,7 +215,6 @@ func TestBEQ(t *testing.T) {
 			cycles:     2,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -275,7 +270,6 @@ func TestBIT(t *testing.T) {
 			cycles:         3,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -297,7 +291,6 @@ func TestBMI(t *testing.T) {
 			cycles:         2,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -341,7 +334,6 @@ func TestBPL(t *testing.T) {
 			cycles:         2,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -371,6 +363,48 @@ func TestBRK(t *testing.T) {
 	tests.run(t)
 }
 
+func TestBVC(t *testing.T) {
+	tests := testCases{
+		{
+			name:           "no branch",
+			program:        []uint8{0x50, 0x02},
+			setupOverflow:  newBool(true),
+			expectOverflow: true,
+			expectPC:       newUint16(0xdd02),
+			cycles:         2,
+		},
+		{
+			name:           "branch",
+			program:        []uint8{0x50, 0x10},
+			expectOverflow: false,
+			expectPC:       newUint16(0xdd11),
+			cycles:         2,
+		},
+	}
+	tests.run(t)
+}
+
+func TestBVS(t *testing.T) {
+	tests := testCases{
+		{
+			name:           "no branch",
+			program:        []uint8{0x70, 0x02},
+			expectOverflow: false,
+			expectPC:       newUint16(0xdd02),
+			cycles:         2,
+		},
+		{
+			name:           "branch",
+			program:        []uint8{0x70, 0x10},
+			setupOverflow:  newBool(true),
+			expectOverflow: true,
+			expectPC:       newUint16(0xdd11),
+			cycles:         2,
+		},
+	}
+	tests.run(t)
+}
+
 func TestCLC(t *testing.T) {
 	tests := testCases{
 		{
@@ -387,7 +421,6 @@ func TestCLC(t *testing.T) {
 			cycles:      2,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -407,7 +440,6 @@ func TestCLD(t *testing.T) {
 			cycles:        2,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -427,7 +459,6 @@ func TestCLI(t *testing.T) {
 			cycles:                 2,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -447,7 +478,6 @@ func TestCLV(t *testing.T) {
 			cycles:         2,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -467,7 +497,6 @@ func TestINX(t *testing.T) {
 			cycles:  2,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -487,7 +516,6 @@ func TestINY(t *testing.T) {
 			cycles:  2,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -524,7 +552,6 @@ func TestINC(t *testing.T) {
 			setupX:       newUint8(0x1),
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -549,7 +576,6 @@ func TestJMP(t *testing.T) {
 			expectPC: newUint16(0x2342),
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -565,7 +591,6 @@ func TestJSR(t *testing.T) {
 			cycles: 6,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -669,7 +694,6 @@ func TestLDA(t *testing.T) {
 			expectA: newUint8(0x23),
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -712,7 +736,6 @@ func TestLDX(t *testing.T) {
 			setupY:  newUint8(0x1),
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -755,7 +778,6 @@ func TestLDY(t *testing.T) {
 			setupY:  newUint8(0x1),
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -806,7 +828,6 @@ func TestLSR(t *testing.T) {
 			setupX:       newUint8(0x5),
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -818,7 +839,6 @@ func TestNOP(t *testing.T) {
 			cycles:  2,
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -899,7 +919,6 @@ func TestORA(t *testing.T) {
 			expectA: newUint8(0x52),
 		},
 	}
-
 	tests.run(t)
 }
 
@@ -962,6 +981,5 @@ func TestSTA(t *testing.T) {
 			expectMemory: map[uint16]uint8{0x0013: 0x12},
 		},
 	}
-
 	tests.run(t)
 }

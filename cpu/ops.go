@@ -139,6 +139,22 @@ func (cpu *MOS6502) brk(ins *instruction, address uint16) {
 	cpu.pc = uint16(lo | hi)
 }
 
+func (cpu *MOS6502) bvc(ins *instruction, address uint16) {
+	// Branch on Overflow Clear
+	if cpu.p.isSet(P_Overflow) {
+		return
+	}
+	cpu.pc = address
+}
+
+func (cpu *MOS6502) bvs(ins *instruction, address uint16) {
+	// Branch on Overflow Set
+	if !cpu.p.isSet(P_Overflow) {
+		return
+	}
+	cpu.pc = address
+}
+
 func (cpu *MOS6502) clc(ins *instruction, address uint16) {
 	// Clear Carry Flag
 	cpu.p.clear(P_Carry)

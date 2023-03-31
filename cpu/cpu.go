@@ -91,6 +91,12 @@ func NewMOS6502() *MOS6502 {
 	// BRK
 	cpu.instructions[0x00] = NewInstruction(OPC_BRK, 7, 1, cpu.brk, AM_IMPLIED)
 
+	// BVC
+	cpu.instructions[0x50] = NewInstruction(OPC_BVC, 2, 2, cpu.bvc, AM_RELATIVE)
+
+	// BVS
+	cpu.instructions[0x70] = NewInstruction(OPC_BVS, 2, 2, cpu.bvs, AM_RELATIVE)
+
 	// CLC
 	cpu.instructions[0x18] = NewInstruction(OPC_CLC, 2, 1, cpu.clc, AM_IMPLIED)
 
