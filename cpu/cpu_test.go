@@ -117,7 +117,7 @@ type testCase struct {
 	setupOverflow         *bool
 	setupNegative         *bool
 
-	// expectations
+	// expected number of cycles to run
 	cycles uint8
 	// expect flags
 	expectCarry            bool
@@ -136,7 +136,7 @@ type testCase struct {
 	expectSP *uint8
 	expectPC *uint16
 
-	// expectMemory
+	// expectMemory to look like this
 	expectMemory map[uint16]uint8
 }
 

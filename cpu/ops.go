@@ -95,6 +95,30 @@ func (cpu *MOS6502) bit(ins *instruction, address uint16) {
 	}
 }
 
+func (cpu *MOS6502) bmi(ins *instruction, address uint16) {
+	// Branch on Result Minus
+	if !cpu.p.isSet(P_Negative) {
+		return
+	}
+	cpu.pc = address
+}
+
+func (cpu *MOS6502) bne(ins *instruction, address uint16) {
+	// Branch on Result not Zero
+	if cpu.p.isSet(P_Zero) {
+		return
+	}
+	cpu.pc = address
+}
+
+func (cpu *MOS6502) bpl(ins *instruction, address uint16) {
+	// Branch on Result Plus
+	if cpu.p.isSet(P_Negative) {
+		return
+	}
+	cpu.pc = address
+}
+
 func (cpu *MOS6502) clc(ins *instruction, address uint16) {
 	// Clear Carry Flag
 	cpu.p.clear(P_Carry)

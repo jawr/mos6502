@@ -279,6 +279,72 @@ func TestBIT(t *testing.T) {
 	tests.run(t)
 }
 
+func TestBMI(t *testing.T) {
+	tests := testCases{
+		{
+			name:           "no branch",
+			program:        []uint8{0x30, 0x02},
+			expectNegative: false,
+			expectPC:       newUint16(0xdd02),
+			cycles:         2,
+		},
+		{
+			name:           "branch",
+			program:        []uint8{0x30, 0x10},
+			setupNegative:  newBool(true),
+			expectNegative: true,
+			expectPC:       newUint16(0xdd11),
+			cycles:         2,
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestBNE(t *testing.T) {
+	tests := testCases{
+		{
+			name:       "no branch",
+			program:    []uint8{0xd0, 0x02},
+			setupZero:  newBool(true),
+			expectZero: true,
+			expectPC:   newUint16(0xdd02),
+			cycles:     2,
+		},
+		{
+			name:       "branch",
+			program:    []uint8{0xd0, 0x10},
+			expectZero: false,
+			expectPC:   newUint16(0xdd11),
+			cycles:     2,
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestBPL(t *testing.T) {
+	tests := testCases{
+		{
+			name:           "no branch",
+			program:        []uint8{0x10, 0x02},
+			setupNegative:  newBool(true),
+			expectNegative: true,
+			expectPC:       newUint16(0xdd02),
+			cycles:         2,
+		},
+		{
+			name:           "branch",
+			program:        []uint8{0x10, 0x10},
+			expectNegative: false,
+			expectPC:       newUint16(0xdd11),
+			cycles:         2,
+		},
+	}
+
+	tests.run(t)
+}
+
 func TestCLC(t *testing.T) {
 	tests := testCases{
 		{

@@ -77,6 +77,15 @@ func NewMOS6502() *MOS6502 {
 	cpu.instructions[0x24] = NewInstruction(OPC_BIT, 3, 2, cpu.bit, AM_ZEROPAGE)
 	cpu.instructions[0x2c] = NewInstruction(OPC_BIT, 4, 3, cpu.bit, AM_ABSOLUTE)
 
+	// BMI
+	cpu.instructions[0x30] = NewInstruction(OPC_BMI, 2, 2, cpu.bmi, AM_RELATIVE)
+
+	// BNE
+	cpu.instructions[0xd0] = NewInstruction(OPC_BNE, 2, 2, cpu.bne, AM_RELATIVE)
+
+	// BPL
+	cpu.instructions[0x10] = NewInstruction(OPC_BPL, 2, 2, cpu.bpl, AM_RELATIVE)
+
 	// CLC
 	cpu.instructions[0x18] = NewInstruction(OPC_CLC, 2, 1, cpu.clc, AM_IMPLIED)
 
