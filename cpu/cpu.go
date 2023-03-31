@@ -1,7 +1,5 @@
 package cpu
 
-import "fmt"
-
 type MOS6502 struct {
 	// main register
 	a uint8
@@ -16,7 +14,7 @@ type MOS6502 struct {
 	pc uint16
 
 	// status register (https://www.masswerk.at/6502/6502_instruction_set.html)
-	// N -> Sign
+	// N -> Sign/Negative
 	// V -> Overflow
 	// - -> Reserved
 	// B -> Break
@@ -65,6 +63,19 @@ func NewMOS6502() *MOS6502 {
 	cpu.instructions[0x16] = NewInstruction(OPC_ASL, 6, 2, cpu.asl, AM_ZEROPAGE_X)
 	cpu.instructions[0x0e] = NewInstruction(OPC_ASL, 6, 3, cpu.asl, AM_ABSOLUTE)
 	cpu.instructions[0x1e] = NewInstruction(OPC_ASL, 7, 3, cpu.asl, AM_INDEXED_X)
+
+	// BCC
+	cpu.instructions[0x90] = NewInstruction(OPC_BCC, 2, 2, cpu.bcc, AM_RELATIVE)
+
+	// BCS
+	cpu.instructions[0xb0] = NewInstruction(OPC_BCS, 2, 2, cpu.bcs, AM_RELATIVE)
+
+	// BEQ
+	cpu.instructions[0xf0] = NewInstruction(OPC_BEQ, 2, 2, cpu.beq, AM_RELATIVE)
+
+	// BIT
+	cpu.instructions[0x24] = NewInstruction(OPC_BIT, 3, 2, cpu.bit, AM_ZEROPAGE)
+	cpu.instructions[0x2c] = NewInstruction(OPC_BIT, 4, 3, cpu.bit, AM_ABSOLUTE)
 
 	// CLC
 	cpu.instructions[0x18] = NewInstruction(OPC_CLC, 2, 1, cpu.clc, AM_IMPLIED)
@@ -185,8 +196,6 @@ func (cpu *MOS6502) Cycle() {
 	}
 
 	operand := instruction.parseOperand(cpu)
-
-	fmt.Printf("opcode=%02x operand=%04x pc=%04x a=%02x x=%02x y=%02x\n", opcode, operand, cpu.pc, cpu.a, cpu.x, cpu.y)
 
 	// increment the pc by the number of bytes read for the operand
 	cpu.pc += uint16(instruction.size - 1)

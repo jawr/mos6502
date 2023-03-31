@@ -45,6 +45,10 @@ const (
 	OPC_ADC = "ADC"
 	OPC_AND = "AND"
 	OPC_ASL = "ASL"
+	OPC_BCC = "BCC"
+	OPC_BEQ = "BEQ"
+	OPC_BIT = "BIT"
+	OPC_BCS = "BCS"
 	OPC_CLC = "CLC"
 	OPC_CLD = "CLD"
 	OPC_CLI = "CLI"
@@ -190,6 +194,11 @@ func (i *instruction) parseOperand(cpu *MOS6502) uint16 {
 
 		// read the address from the indirect address
 		return cpu.memory.ReadWord(address)
+
+	case AM_RELATIVE:
+		address := uint16(cpu.memory.Read(cpu.pc))
+		address += cpu.pc
+		return address
 
 	default:
 		panic("unsupported address mode")

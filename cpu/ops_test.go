@@ -157,6 +157,128 @@ func TestASL(t *testing.T) {
 	tests.run(t)
 }
 
+func TestBCC(t *testing.T) {
+	tests := testCases{
+		{
+			name:        "no branch",
+			program:     []uint8{0x90, 0x02},
+			setupCarry:  newBool(true),
+			expectCarry: true,
+			expectPC:    newUint16(0xdd02),
+			cycles:      2,
+		},
+		{
+			name:        "branch",
+			program:     []uint8{0x90, 0x10},
+			expectCarry: false,
+			expectPC:    newUint16(0xdd11),
+			cycles:      2,
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestBCS(t *testing.T) {
+	tests := testCases{
+		{
+			name:        "no branch",
+			program:     []uint8{0xb0, 0x02},
+			expectCarry: false,
+			expectPC:    newUint16(0xdd02),
+			cycles:      2,
+		},
+		{
+			name:        "branch",
+			program:     []uint8{0xb0, 0x10},
+			setupCarry:  newBool(true),
+			expectCarry: true,
+			expectPC:    newUint16(0xdd11),
+			cycles:      2,
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestBEQ(t *testing.T) {
+	tests := testCases{
+		{
+			name:       "no branch",
+			program:    []uint8{0xf0, 0x02},
+			expectZero: false,
+			expectPC:   newUint16(0xdd02),
+			cycles:     2,
+		},
+		{
+			name:       "branch",
+			program:    []uint8{0xf0, 0x10},
+			setupZero:  newBool(true),
+			expectZero: true,
+			expectPC:   newUint16(0xdd11),
+			cycles:     2,
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestBIT(t *testing.T) {
+	tests := testCases{
+		{
+			name:       "BIT sets Z flag when zero bit is set",
+			program:    []uint8{0x24, 0x10},
+			memory:     map[uint16]uint8{0x0010: 0x00},
+			setupA:     newUint8(0xFF),
+			expectZero: true,
+			cycles:     3,
+		},
+		{
+			name:       "BIT clears Z flag when zero bit is clear",
+			program:    []uint8{0x24, 0x10},
+			memory:     map[uint16]uint8{0x0010: 0x01},
+			setupA:     newUint8(0xFF),
+			expectZero: false,
+			cycles:     3,
+		},
+		{
+			name:           "BIT sets N flag when negative bit is set",
+			program:        []uint8{0x24, 0x10},
+			memory:         map[uint16]uint8{0x0010: 0x80},
+			setupA:         newUint8(0xFF),
+			expectNegative: true,
+			cycles:         3,
+		},
+		{
+			name:           "BIT clears N flag when negative bit is clear",
+			program:        []uint8{0x24, 0x10},
+			memory:         map[uint16]uint8{0x0010: 0x7F},
+			setupA:         newUint8(0xFF),
+			expectNegative: false,
+			expectOverflow: true,
+			cycles:         3,
+		},
+		{
+			name:           "BIT sets V flag when overflow bit is set",
+			program:        []uint8{0x24, 0x10},
+			memory:         map[uint16]uint8{0x0010: 0x40},
+			setupA:         newUint8(0xFF),
+			expectOverflow: true,
+			cycles:         3,
+		},
+		{
+			name:           "BIT clears V flag when overflow bit is clear",
+			program:        []uint8{0x24, 0x10},
+			memory:         map[uint16]uint8{0x0010: 0x3F},
+			setupA:         newUint8(0xFF),
+			expectOverflow: false,
+			cycles:         3,
+		},
+	}
+
+	tests.run(t)
+}
+
 func TestCLC(t *testing.T) {
 	tests := testCases{
 		{

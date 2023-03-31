@@ -1,7 +1,5 @@
 package cpu
 
-import "fmt"
-
 func (cpu *MOS6502) adc(ins *instruction, address uint16) {
 	// Add Memory to Accumulator with Carry
 	// A + M + C -> A, C
@@ -53,6 +51,48 @@ func (cpu *MOS6502) asl(ins *instruction, address uint16) {
 	cpu.testAndSetNegative(uint8(shifted))
 	cpu.testAndSetZero(uint8(shifted))
 	cpu.testAndSetCarry(shifted)
+}
+
+func (cpu *MOS6502) bcc(ins *instruction, address uint16) {
+	// Branch on Carry Clear
+	if cpu.p.isSet(P_Carry) {
+		return
+	}
+	cpu.pc = address
+}
+
+func (cpu *MOS6502) bcs(ins *instruction, address uint16) {
+	// Branch on Carry Set
+	if !cpu.p.isSet(P_Carry) {
+		return
+	}
+	cpu.pc = address
+}
+
+func (cpu *MOS6502) beq(ins *instruction, address uint16) {
+	// Branch on Result Zero
+	if !cpu.p.isSet(P_Zero) {
+		return
+	}
+	cpu.pc = address
+}
+
+func (cpu *MOS6502) bit(ins *instruction, address uint16) {
+	// Test Bits in Memory with Accumulator
+	// bits 7 and 6 of operand are transfered to bit 7 and 6 of SR (N,V);
+	// the zero-flag is set to the result of operand AND accumulator.
+
+	value := cpu.memory.Read(address)
+
+	cpu.testAndSetZero(cpu.a & value)
+
+	if value&(1<<7) != 0 {
+		cpu.p.set(P_Negative)
+	}
+
+	if value&(1<<6) != 0 {
+		cpu.p.set(P_Overflow)
+	}
 }
 
 func (cpu *MOS6502) clc(ins *instruction, address uint16) {
@@ -167,10 +207,7 @@ func (cpu *MOS6502) lsr(ins *instruction, address uint16) {
 func (cpu *MOS6502) ora(ins *instruction, address uint16) {
 	// Or Memory with Accumulator
 	value := cpu.memory.Read(address)
-	a := cpu.a
 	cpu.a = cpu.a | value
-
-	fmt.Printf("ora %02x | %02x = %02x (address: %04x)\n", a, cpu.a, value, address)
 
 	cpu.testAndSetNegative(cpu.a)
 	cpu.testAndSetZero(cpu.a)

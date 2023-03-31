@@ -111,9 +111,11 @@ type testCase struct {
 
 	// setup flags
 	setupCarry            *bool
+	setupZero             *bool
 	setupDecimal          *bool
 	setupInterruptDisable *bool
 	setupOverflow         *bool
+	setupNegative         *bool
 
 	// expectations
 	cycles uint8
@@ -185,8 +187,14 @@ func (tc *testCase) setup(t *testing.T) *MOS6502 {
 	if tc.setupOverflow != nil {
 		cpu.p.set(P_Overflow)
 	}
+	if tc.setupNegative != nil {
+		cpu.p.set(P_Negative)
+	}
 	if tc.setupCarry != nil {
 		cpu.p.set(P_Carry)
+	}
+	if tc.setupZero != nil {
+		cpu.p.set(P_Zero)
 	}
 
 	return cpu
