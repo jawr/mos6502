@@ -16,8 +16,6 @@ func (cpu *MOS6502) adc(ins *instruction, address uint16) {
 	// sum in uint16 to catch overflow
 	sum := uint16(a) + uint16(m) + uint16(c)
 
-	fmt.Printf("adc %04x v=%02x a=%02x c=%02x sum=%04x\n", address, m, a, c, sum)
-
 	cpu.a = uint8(sum & 0xff)
 	cpu.testAndSetCarry(sum)
 	cpu.testAndSetNegative(cpu.a)
@@ -31,6 +29,30 @@ func (cpu *MOS6502) and(ins *instruction, address uint16) {
 	cpu.a = cpu.a & b
 	cpu.testAndSetNegative(cpu.a)
 	cpu.testAndSetZero(cpu.a)
+}
+
+func (cpu *MOS6502) asl(ins *instruction, address uint16) {
+	// Shift Left One Bit (Memory or Accumulator)
+	accumulator := ins.mode == AM_IMPLIED
+
+	// if we are immediate get from the accumulator
+	value := cpu.a
+	if !accumulator {
+		value = cpu.memory.Read(address)
+	}
+
+	// shift right
+	shifted := uint16(value) << 1
+
+	if accumulator {
+		cpu.a = uint8(shifted)
+	} else {
+		cpu.memory[address] = uint8(shifted)
+	}
+
+	cpu.testAndSetNegative(uint8(shifted))
+	cpu.testAndSetZero(uint8(shifted))
+	cpu.testAndSetCarry(shifted)
 }
 
 func (cpu *MOS6502) clc(ins *instruction, address uint16) {
@@ -140,6 +162,18 @@ func (cpu *MOS6502) lsr(ins *instruction, address uint16) {
 
 	cpu.testAndSetZero(uint8(shifted))
 	cpu.testAndSetCarry(shifted)
+}
+
+func (cpu *MOS6502) ora(ins *instruction, address uint16) {
+	// Or Memory with Accumulator
+	value := cpu.memory.Read(address)
+	a := cpu.a
+	cpu.a = cpu.a | value
+
+	fmt.Printf("ora %02x | %02x = %02x (address: %04x)\n", a, cpu.a, value, address)
+
+	cpu.testAndSetNegative(cpu.a)
+	cpu.testAndSetZero(cpu.a)
 }
 
 func (cpu *MOS6502) sta(ins *instruction, address uint16) {

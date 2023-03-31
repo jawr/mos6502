@@ -101,6 +101,62 @@ func TestAND(t *testing.T) {
 	tests.run(t)
 }
 
+func TestASL(t *testing.T) {
+	tests := testCases{
+		{
+			name:        "accumulator",
+			program:     []uint8{0x0a},
+			expectA:     newUint8(0x54),
+			expectCarry: true,
+			cycles:      2,
+		},
+		{
+			name:       "accumulator 0",
+			program:    []uint8{0x0a},
+			setupA:     newUint8(0x00),
+			expectA:    newUint8(0x00),
+			cycles:     2,
+			expectZero: true,
+		},
+		{
+			name:           "zeropage",
+			program:        []uint8{0x06, 0x42},
+			memory:         map[uint16]uint8{0x0042: 0x55},
+			cycles:         5,
+			expectMemory:   map[uint16]uint8{0x0042: 0xaa},
+			expectNegative: true,
+		},
+		{
+			name:           "zeropage,x",
+			program:        []uint8{0x16, 0x42},
+			memory:         map[uint16]uint8{0x0047: 0x55},
+			cycles:         6,
+			expectMemory:   map[uint16]uint8{0x0047: 0xaa},
+			expectNegative: true,
+			setupX:         newUint8(0x5),
+		},
+		{
+			name:           "absolute",
+			program:        []uint8{0x0e, 0x42},
+			memory:         map[uint16]uint8{0x0042: 0x55},
+			cycles:         6,
+			expectMemory:   map[uint16]uint8{0x0042: 0xaa},
+			expectNegative: true,
+		},
+		{
+			name:           "absolute,x",
+			program:        []uint8{0x1e, 0x42},
+			memory:         map[uint16]uint8{0x0047: 0x55},
+			cycles:         7,
+			expectMemory:   map[uint16]uint8{0x0047: 0xaa},
+			expectNegative: true,
+			setupX:         newUint8(0x5),
+		},
+	}
+
+	tests.run(t)
+}
+
 func TestCLC(t *testing.T) {
 	tests := testCases{
 		{
@@ -534,6 +590,99 @@ func TestLSR(t *testing.T) {
 			cycles:       7,
 			expectMemory: map[uint16]uint8{0x0047: 0x2a},
 			setupX:       newUint8(0x5),
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestNOP(t *testing.T) {
+	tests := testCases{
+		{
+			name:    "implied",
+			program: []uint8{0xea},
+			cycles:  2,
+		},
+	}
+
+	tests.run(t)
+}
+
+func TestORA(t *testing.T) {
+	tests := testCases{
+		{
+			name:    "immediate",
+			program: []uint8{0x09, 0x42},
+			cycles:  2,
+			setupA:  newUint8(0x10),
+			expectA: newUint8(0x52),
+		},
+		{
+			name:    "zeropage",
+			program: []uint8{0x05, 0x42},
+			cycles:  3,
+			memory:  map[uint16]uint8{0x0042: 0x42},
+			setupA:  newUint8(0x10),
+			expectA: newUint8(0x52),
+		},
+		{
+			name:    "zeropage,x",
+			program: []uint8{0x15, 0x42},
+			cycles:  4,
+			memory:  map[uint16]uint8{0x0043: 0x42},
+			setupA:  newUint8(0x10),
+			setupX:  newUint8(0x01),
+			expectA: newUint8(0x52),
+		},
+		{
+			name:    "absolute",
+			program: []uint8{0x0d, 0x42, 0xaa},
+			cycles:  4,
+			memory:  map[uint16]uint8{0xaa42: 0x42},
+			setupA:  newUint8(0x10),
+			expectA: newUint8(0x52),
+		},
+		{
+			name:    "absolute,x",
+			program: []uint8{0x1d, 0x42, 0xaa},
+			cycles:  4,
+			memory:  map[uint16]uint8{0xaa43: 0x42},
+			setupA:  newUint8(0x10),
+			setupX:  newUint8(0x01),
+			expectA: newUint8(0x52),
+		},
+		{
+			name:    "absolute,y",
+			program: []uint8{0x19, 0x42, 0xaa},
+			cycles:  4,
+			memory:  map[uint16]uint8{0xaa43: 0x42},
+			setupA:  newUint8(0x10),
+			setupY:  newUint8(0x01),
+			expectA: newUint8(0x52),
+		},
+		{
+			name:    "(indirect,x)",
+			program: []uint8{0x01, 0xaa},
+			memory: map[uint16]uint8{
+				0x00ab: 0xcc,
+				0x00cc: 0x42,
+			},
+			cycles:  6,
+			setupA:  newUint8(0x10),
+			setupX:  newUint8(0x01),
+			expectA: newUint8(0x52),
+		},
+		{
+			name:    "(indirect),y",
+			program: []uint8{0x11, 0xaa},
+			cycles:  6,
+			memory: map[uint16]uint8{
+				0xaa: 0xcc,
+				0xcd: 0x42,
+			},
+			setupA:  newUint8(0x10),
+			setupY:  newUint8(0x01),
+			expectA: newUint8(0x52),
 		},
 	}
 

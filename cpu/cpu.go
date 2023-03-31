@@ -60,6 +60,11 @@ func NewMOS6502() *MOS6502 {
 	cpu.instructions[0x31] = NewInstruction(OPC_AND, 5, 2, cpu.and, AM_POST_INDEXED)
 
 	// ASL
+	cpu.instructions[0x0a] = NewInstruction(OPC_ASL, 2, 1, cpu.asl, AM_IMPLIED)
+	cpu.instructions[0x06] = NewInstruction(OPC_ASL, 5, 2, cpu.asl, AM_ZEROPAGE)
+	cpu.instructions[0x16] = NewInstruction(OPC_ASL, 6, 2, cpu.asl, AM_ZEROPAGE_X)
+	cpu.instructions[0x0e] = NewInstruction(OPC_ASL, 6, 3, cpu.asl, AM_ABSOLUTE)
+	cpu.instructions[0x1e] = NewInstruction(OPC_ASL, 7, 3, cpu.asl, AM_INDEXED_X)
 
 	// CLC
 	cpu.instructions[0x18] = NewInstruction(OPC_CLC, 2, 1, cpu.clc, AM_IMPLIED)
@@ -125,6 +130,16 @@ func NewMOS6502() *MOS6502 {
 	cpu.instructions[0x56] = NewInstruction(OPC_LSR, 6, 2, cpu.lsr, AM_ZEROPAGE_X)
 	cpu.instructions[0x4e] = NewInstruction(OPC_LSR, 6, 3, cpu.lsr, AM_ABSOLUTE)
 	cpu.instructions[0x5e] = NewInstruction(OPC_LSR, 7, 3, cpu.lsr, AM_INDEXED_X)
+
+	// ORA
+	cpu.instructions[0x09] = NewInstruction(OPC_ORA, 2, 2, cpu.ora, AM_IMMEDIATE)
+	cpu.instructions[0x05] = NewInstruction(OPC_ORA, 3, 2, cpu.ora, AM_ZEROPAGE)
+	cpu.instructions[0x15] = NewInstruction(OPC_ORA, 4, 2, cpu.ora, AM_ZEROPAGE_X)
+	cpu.instructions[0x0d] = NewInstruction(OPC_ORA, 4, 3, cpu.ora, AM_ABSOLUTE)
+	cpu.instructions[0x1d] = NewInstruction(OPC_ORA, 4, 3, cpu.ora, AM_INDEXED_X)
+	cpu.instructions[0x19] = NewInstruction(OPC_ORA, 4, 3, cpu.ora, AM_INDEXED_Y)
+	cpu.instructions[0x01] = NewInstruction(OPC_ORA, 6, 2, cpu.ora, AM_PRE_INDEXED)
+	cpu.instructions[0x11] = NewInstruction(OPC_ORA, 5, 2, cpu.ora, AM_POST_INDEXED)
 
 	// STA
 	cpu.instructions[0x85] = NewInstruction(OPC_STA, 3, 2, cpu.sta, AM_ZEROPAGE)

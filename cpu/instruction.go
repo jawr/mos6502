@@ -58,6 +58,7 @@ const (
 	OPC_LDA = "LDA"
 	OPC_LDX = "LDX"
 	OPC_LDY = "LDY"
+	OPC_ORA = "ORA"
 	OPC_STA = "STA"
 	OPC_LSR = "LSR"
 )
