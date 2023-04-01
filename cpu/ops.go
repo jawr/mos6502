@@ -272,12 +272,17 @@ func (cpu *MOS6502) jmp(ins *instruction, address uint16) {
 
 func (cpu *MOS6502) jsr(ins *instruction, address uint16) {
 	// Jump to New Location Saving Return Address
-	lo := uint8(address)
-	hi := uint8(address >> 8)
+	pc := cpu.pc - 1
 
 	// push the lo then the hi bytes on to the stack
-	cpu.push(lo)
+	hi := uint8(pc >> 8)
+	lo := uint8(pc)
+
 	cpu.push(hi)
+	cpu.push(lo)
+
+	cpu.pc = address
+
 }
 
 func (cpu *MOS6502) lda(ins *instruction, address uint16) {
@@ -306,7 +311,6 @@ func (cpu *MOS6502) ldy(ins *instruction, address uint16) {
 
 func (cpu *MOS6502) lsr(ins *instruction, address uint16) {
 	// Shift One Bit Right (Memory or Accumulator)
-
 	accumulator := ins.mode == AM_IMPLIED
 
 	// if we are immediate get from the accumulator
@@ -326,6 +330,7 @@ func (cpu *MOS6502) lsr(ins *instruction, address uint16) {
 
 	cpu.testAndSetZero(uint8(shifted))
 	cpu.testAndSetCarry(shifted)
+	cpu.p.set(P_Negative, false)
 }
 
 func (cpu *MOS6502) nop(ins *instruction, address uint16) {
@@ -366,6 +371,112 @@ func (cpu *MOS6502) plp(ins *instruction, address uint16) {
 	p := cpu.pop()
 	cpu.p = flags(p)
 	cpu.p.set(P_Reserved, true)
+}
+
+func (cpu *MOS6502) rol(ins *instruction, address uint16) {
+	// Rotate One Bit Left (Memory or Accumulator)
+	accumulator := ins.mode == AM_IMPLIED
+
+	// if we are immediate get from the accumulator
+	value := cpu.a
+	if !accumulator {
+		value = cpu.memory.Read(address)
+	}
+
+	var c uint8 = 0
+	if cpu.p.isSet(P_Carry) {
+		c = 1
+	}
+
+	// roll left
+	rolled := (uint16(value) << 1) | uint16(c)
+
+	if accumulator {
+		cpu.a = uint8(rolled)
+	} else {
+		cpu.memory[address] = uint8(rolled)
+	}
+
+	cpu.p.set(P_Carry, value&0x80 == 0x80)
+	cpu.testAndSetNegative(uint8(rolled))
+	cpu.testAndSetZero(uint8(rolled))
+}
+
+func (cpu *MOS6502) ror(ins *instruction, address uint16) {
+	// Rotate One Bit Right (Memory or Accumulator)
+	accumulator := ins.mode == AM_IMPLIED
+
+	// if we are immediate get from the accumulator
+	value := cpu.a
+	if !accumulator {
+		value = cpu.memory.Read(address)
+	}
+
+	var c uint8 = 0
+	if cpu.p.isSet(P_Carry) {
+		c = 1
+	}
+
+	// roll right
+	rolled := uint16(value)>>1 | uint16(c)<<7
+
+	if accumulator {
+		cpu.a = uint8(rolled)
+	} else {
+		cpu.memory[address] = uint8(rolled)
+	}
+
+	cpu.p.set(P_Carry, value&0x01 == 0x01)
+	cpu.testAndSetNegative(uint8(rolled))
+	cpu.testAndSetZero(uint8(rolled))
+}
+
+func (cpu *MOS6502) rti(ins *instruction, address uint16) {
+	// Return from Interrupt
+	// pop the status register
+	cpu.p = flags(cpu.pop())
+	cpu.p.set(P_Reserved, true)
+	cpu.p.set(P_Break, false)
+
+	// pop the program counter
+	lo := cpu.pop()
+	hi := cpu.pop()
+
+	cpu.pc = uint16(hi)<<8 | uint16(lo)
+}
+
+func (cpu *MOS6502) rts(ins *instruction, address uint16) {
+	// Return from Subroutine
+	// pop the program counter
+	lo := cpu.pop()
+	hi := cpu.pop()
+
+	cpu.pc = (uint16(lo) | (uint16(hi) << 8))
+
+	cpu.pc++ // Increment the program counter by 1
+}
+
+func (cpu *MOS6502) sbc(ins *instruction, address uint16) {
+	// Subtract Memory from Accumulator with Borrow
+
+	var c uint8 = 0
+	if cpu.p.isSet(P_Carry) {
+		c = 1
+	}
+
+	a := cpu.a
+	m := cpu.memory.Read(address)
+
+	// sum in uint16 to catch overflow
+	sum := uint16(a) - uint16(m) + uint16(c)
+
+	cpu.a = uint8(sum & 0xff)
+	cpu.p.set(P_Carry, sum < 0x100)
+	cpu.testAndSetNegative(cpu.a)
+	cpu.testAndSetZero(cpu.a)
+
+	// set overrflow
+	cpu.p.set(P_Overflow, (a^m)&0x80 == 0x80 && (a^cpu.a)&0x80 == 0x80)
 }
 
 func (cpu *MOS6502) sec(ins *instruction, address uint16) {

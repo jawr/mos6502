@@ -242,6 +242,36 @@ func NewMOS6502() *MOS6502 {
 	// PLP
 	cpu.instructions[0x28] = NewInstruction(OPC_PLP, 4, 1, cpu.plp, AM_IMPLIED)
 
+	// ROL
+	cpu.instructions[0x2a] = NewInstruction(OPC_ROL, 2, 1, cpu.rol, AM_IMPLIED)
+	cpu.instructions[0x26] = NewInstruction(OPC_ROL, 5, 2, cpu.rol, AM_ZEROPAGE)
+	cpu.instructions[0x36] = NewInstruction(OPC_ROL, 6, 2, cpu.rol, AM_ZEROPAGE_X)
+	cpu.instructions[0x2e] = NewInstruction(OPC_ROL, 6, 3, cpu.rol, AM_ABSOLUTE)
+	cpu.instructions[0x3e] = NewInstruction(OPC_ROL, 7, 3, cpu.rol, AM_INDEXED_X)
+
+	// ROR
+	cpu.instructions[0x6a] = NewInstruction(OPC_ROR, 2, 1, cpu.ror, AM_IMPLIED)
+	cpu.instructions[0x66] = NewInstruction(OPC_ROR, 5, 2, cpu.ror, AM_ZEROPAGE)
+	cpu.instructions[0x76] = NewInstruction(OPC_ROR, 6, 2, cpu.ror, AM_ZEROPAGE_X)
+	cpu.instructions[0x6e] = NewInstruction(OPC_ROR, 6, 3, cpu.ror, AM_ABSOLUTE)
+	cpu.instructions[0x7e] = NewInstruction(OPC_ROR, 7, 3, cpu.ror, AM_INDEXED_X)
+
+	// RTI
+	cpu.instructions[0x40] = NewInstruction(OPC_RTI, 6, 1, cpu.rti, AM_IMPLIED)
+
+	// RTS
+	cpu.instructions[0x60] = NewInstruction(OPC_RTS, 6, 1, cpu.rts, AM_IMPLIED)
+
+	// SBC
+	cpu.instructions[0xe9] = NewInstruction(OPC_SBC, 2, 2, cpu.sbc, AM_IMMEDIATE)
+	cpu.instructions[0xe5] = NewInstruction(OPC_SBC, 3, 2, cpu.sbc, AM_ZEROPAGE)
+	cpu.instructions[0xf5] = NewInstruction(OPC_SBC, 4, 2, cpu.sbc, AM_ZEROPAGE_X)
+	cpu.instructions[0xed] = NewInstruction(OPC_SBC, 4, 3, cpu.sbc, AM_ABSOLUTE)
+	cpu.instructions[0xfd] = NewInstruction(OPC_SBC, 4, 3, cpu.sbc, AM_INDEXED_X)
+	cpu.instructions[0xf9] = NewInstruction(OPC_SBC, 4, 3, cpu.sbc, AM_INDEXED_Y)
+	cpu.instructions[0xe1] = NewInstruction(OPC_SBC, 6, 2, cpu.sbc, AM_PRE_INDEXED)
+	cpu.instructions[0xf1] = NewInstruction(OPC_SBC, 5, 2, cpu.sbc, AM_POST_INDEXED)
+
 	// SEC
 	cpu.instructions[0x38] = NewInstruction(OPC_SEC, 2, 1, cpu.sec, AM_IMPLIED)
 

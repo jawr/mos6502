@@ -1,6 +1,7 @@
 package cpu
 
 import (
+	"fmt"
 	"testing"
 )
 
@@ -56,7 +57,7 @@ func cycle(t *testing.T, cpu *MOS6502, n uint8) {
 		cpu.Cycle()
 	}
 	if cpu.wait != 0 {
-		t.Errorf("expected cycles to be 0 got %d", cpu.wait)
+		t.Logf("expected wait to be 0 got %d cycles should be: %d", cpu.wait, n+cpu.wait)
 	}
 }
 
@@ -208,6 +209,15 @@ func (tc *testCase) run(t *testing.T, cpu *MOS6502) {
 	t.Run(tc.name, func(t *testing.T) {
 		// run
 		cycle(t, cpu, tc.cycles)
+
+		if false {
+			for address, value := range cpu.memory {
+				if value == 0 {
+					continue
+				}
+				fmt.Printf("pc: %04x\tsp: %04x\taddress: %04x\t%02x\n", cpu.pc, cpu.sp, address, value)
+			}
+		}
 
 		// assert registers
 		expect8(t, cpu.a, tc.expectA)

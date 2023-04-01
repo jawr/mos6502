@@ -1127,8 +1127,8 @@ func TestJSR(t *testing.T) {
 			name:    "jsr",
 			program: []uint8{0x20, 0x01, 0x04},
 			expectMemory: map[uint16]uint8{
-				StackTop:        0x01,
-				StackTop - 0x01: 0x04,
+				StackTop:        0xdd,
+				StackTop - 0x01: 0x02,
 			},
 			cycles: 6,
 		},
@@ -1601,6 +1601,299 @@ func TestPLP(t *testing.T) {
 			cycles:                 4,
 			setupSP:                newUint16(StackTop - 0x01),
 			memory:                 map[uint16]uint8{StackTop: 0x8c},
+		},
+	}
+	tests.run(t)
+}
+
+func TestROL(t *testing.T) {
+	tests := testCases{
+		{
+			name: "ROL accumulator, no carry",
+			program: []uint8{
+				0x2A, // ROL A
+			},
+			setupA:  newUint8(0b01010101),
+			cycles:  2,
+			expectA: newUint8(0b10101010),
+			// Flags
+			expectCarry:    false,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: true,
+		},
+		{
+			name: "ROL accumulator, with carry",
+			program: []uint8{
+				0x2A, // ROL A
+			},
+			setupA:  newUint8(0b10000001),
+			cycles:  2,
+			expectA: newUint8(0b00000010),
+			// Flags
+			expectCarry:    true,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: false,
+		},
+		{
+			name: "ROL zero page",
+			program: []uint8{
+				0x26, 0x10, // ROL $10
+			},
+			memory: map[uint16]uint8{
+				0x0010: 0b01010101,
+			},
+			cycles: 5,
+			expectMemory: map[uint16]uint8{
+				0x0010: 0b10101010,
+			},
+			// Flags
+			expectCarry:    false,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: true,
+		},
+		// Add more test cases for ROL zero page, X, absolute, absolute, X as needed
+	}
+	tests.run(t)
+}
+
+func TestROR(t *testing.T) {
+	testCases := testCases{
+		{
+			name: "ROR accumulator, carry unset",
+			program: []uint8{
+				0x6a,
+			},
+			setupA:         newUint8(0x02),
+			setupCarry:     newBool(false),
+			cycles:         2,
+			expectA:        newUint8(0x01),
+			expectCarry:    false,
+			expectZero:     false,
+			expectNegative: false,
+		},
+		{
+			name: "ROR accumulator, carry set",
+			program: []uint8{
+				0x6a,
+			},
+			setupA:         newUint8(0x01),
+			setupCarry:     newBool(true),
+			cycles:         2,
+			expectA:        newUint8(0x80),
+			expectCarry:    true,
+			expectZero:     false,
+			expectNegative: true,
+		},
+		{
+			name: "ROR zero page",
+			program: []uint8{
+				0x66, 0x10,
+			},
+			memory: map[uint16]uint8{
+				0x0010: 0x04,
+			},
+			setupCarry:     newBool(false),
+			cycles:         5,
+			expectCarry:    false,
+			expectZero:     false,
+			expectNegative: false,
+			expectMemory: map[uint16]uint8{
+				0x0010: 0x02,
+			},
+		},
+		// Add more test cases as needed
+	}
+	testCases.run(t)
+}
+
+func TestRTI(t *testing.T) {
+	tests := testCases{
+		{
+			name:    "RTI - Basic",
+			program: []uint8{0x40},
+			memory: map[uint16]uint8{
+				StackTop:     0x12, // Stack: PC High
+				StackTop - 1: 0x34, // Stack: PC Low
+				StackTop - 2: 0x20, // Stack: P
+			},
+			setupSP:  newUint16(StackTop - 3),
+			cycles:   6,
+			expectSP: newUint16(StackTop),
+			expectPC: newUint16(0x1234),
+		},
+		{
+			name:    "RTI - Flags",
+			program: []uint8{0x40},
+			memory: map[uint16]uint8{
+				StackTop:     0x12,       // Stack: PC High
+				StackTop - 1: 0x34,       // Stack: PC Low
+				StackTop - 2: 0b11111111, // Stack: P
+			},
+			setupSP:                newUint16(StackTop - 3),
+			cycles:                 6,
+			expectSP:               newUint16(StackTop),
+			expectPC:               newUint16(0x1234),
+			expectCarry:            true,
+			expectZero:             true,
+			expectInterruptDisable: newBool(true),
+			expectDecimal:          newBool(true),
+			expectOverflow:         true,
+			expectNegative:         true,
+		},
+	}
+	tests.run(t)
+}
+
+func TestRTS(t *testing.T) {
+	tests := testCases{
+		{
+			name:     "RTS - Basic",
+			program:  []uint8{0x20, 0x05, 0xaa}, // JSR $aa05
+			memory:   map[uint16]uint8{0xaa05: 0x60},
+			cycles:   12,                // JSR takes 6 cycles, RTS takes 6 cycles
+			expectPC: newUint16(0xdd03), // RTS will set the PC to the return address + 1, which is 0xdd03
+		},
+		{
+			name: "RTS - With Stack Operations",
+			program: []uint8{
+				// PHA
+				0x48,
+				// JSR $aa05
+				0x20, 0x05, 0xaa,
+				// PLA
+				0x68,
+				// NOP
+				0xea,
+			},
+			memory: map[uint16]uint8{
+				// PHA
+				0xaa05: 0x48,
+				// PLA
+				0xaa06: 0x68,
+				// RTS
+				0xaa07: 0x60,
+			},
+			cycles:   28,
+			setupA:   newUint8(0x42),
+			expectA:  newUint8(0x42),
+			expectPC: newUint16(0xdd06),
+		},
+	}
+	tests.run(t)
+}
+
+func TestSBC(t *testing.T) {
+	tests := testCases{
+		// SBC immediate mode, no borrow
+		{
+			name:           "SBC immediate mode, no borrow",
+			program:        []uint8{0xE9, 0x01}, // SBC #$01
+			memory:         map[uint16]uint8{},
+			setupA:         newUint8(0x03),
+			setupPC:        newUint16(0xDD00),
+			cycles:         2,
+			expectA:        newUint8(0x02),
+			expectPC:       newUint16(0xDD02),
+			expectCarry:    true,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: false,
+		},
+		// SBC immediate mode, with borrow
+		{
+			name:           "SBC immediate mode, with borrow",
+			program:        []uint8{0xE9, 0x03}, // SBC #$03
+			memory:         map[uint16]uint8{},
+			setupA:         newUint8(0x01),
+			setupPC:        newUint16(0xDD00),
+			cycles:         2,
+			expectA:        newUint8(0xFE),
+			expectPC:       newUint16(0xDD02),
+			expectCarry:    false,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: true,
+		},
+		// SBC zero page mode
+		{
+			name:           "SBC zero page mode",
+			program:        []uint8{0xE5, 0x10}, // SBC $10
+			memory:         map[uint16]uint8{0x0010: 0x02},
+			setupA:         newUint8(0x04),
+			setupPC:        newUint16(0xDD00),
+			cycles:         3,
+			expectA:        newUint8(0x02),
+			expectPC:       newUint16(0xDD02),
+			expectCarry:    true,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: false,
+		},
+		// SBC zero page, X mode
+		{
+			name:           "SBC zero page, X mode",
+			program:        []uint8{0xF5, 0x10}, // SBC $10,X
+			memory:         map[uint16]uint8{0x0011: 0x03},
+			setupA:         newUint8(0x05),
+			setupX:         newUint8(0x01),
+			setupPC:        newUint16(0xDD00),
+			cycles:         4,
+			expectA:        newUint8(0x02),
+			expectPC:       newUint16(0xDD02),
+			expectCarry:    true,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: false,
+		},
+		// SBC absolute mode
+		{
+			name:           "SBC absolute mode",
+			program:        []uint8{0xED, 0x20, 0xDD}, // SBC $DD20
+			memory:         map[uint16]uint8{0xDD20: 0x03},
+			setupA:         newUint8(0x06),
+			setupPC:        newUint16(0xDD00),
+			cycles:         4,
+			expectA:        newUint8(0x03),
+			expectPC:       newUint16(0xDD03),
+			expectCarry:    true,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: false,
+		},
+		// SBC absolute, X mode
+		{
+			name:           "SBC absolute, X mode",
+			program:        []uint8{0xFD, 0x20, 0xDD}, // SBC $DD20,X
+			memory:         map[uint16]uint8{0xDD21: 0x04},
+			setupA:         newUint8(0x08),
+			setupX:         newUint8(0x01),
+			setupPC:        newUint16(0xDD00),
+			cycles:         4,
+			expectA:        newUint8(0x04),
+			expectPC:       newUint16(0xDD03),
+			expectCarry:    true,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: false,
+		},
+		// SBC absolute, Y mode
+		{
+			name:           "SBC absolute, Y mode",
+			program:        []uint8{0xF9, 0x20, 0xDD}, // SBC $DD20,Y
+			memory:         map[uint16]uint8{0xDD22: 0x05},
+			setupA:         newUint8(0x0A),
+			setupY:         newUint8(0x02),
+			setupPC:        newUint16(0xDD00),
+			cycles:         4,
+			expectA:        newUint8(0x05),
+			expectPC:       newUint16(0xDD03),
+			expectCarry:    true,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: false,
 		},
 	}
 	tests.run(t)
