@@ -372,3 +372,53 @@ func (cpu *MOS6502) sta(ins *instruction, address uint16) {
 	// Store Accumulator in Memory
 	cpu.memory[address] = cpu.a
 }
+
+func (cpu *MOS6502) stx(ins *instruction, address uint16) {
+	// Store Index X in Memory
+	cpu.memory[address] = cpu.x
+}
+
+func (cpu *MOS6502) sty(ins *instruction, address uint16) {
+	// Store Index Y in Memory
+	cpu.memory[address] = cpu.y
+}
+
+func (cpu *MOS6502) tax(ins *instruction, address uint16) {
+	// Transfer Accumulator to Index X
+	cpu.x = cpu.a
+	cpu.testAndSetNegative(cpu.x)
+	cpu.testAndSetZero(cpu.x)
+}
+
+func (cpu *MOS6502) tay(ins *instruction, address uint16) {
+	// Transfer Accumulator to Index Y
+	cpu.y = cpu.a
+	cpu.testAndSetNegative(cpu.y)
+	cpu.testAndSetZero(cpu.y)
+}
+
+func (cpu *MOS6502) tsx(ins *instruction, address uint16) {
+	// Transfer Stack Pointer to Index X
+	cpu.x = uint8(cpu.sp)
+	cpu.testAndSetNegative(cpu.x)
+	cpu.testAndSetZero(cpu.x)
+}
+
+func (cpu *MOS6502) txa(ins *instruction, address uint16) {
+	// Transfer Index X to Accumulator
+	cpu.a = cpu.x
+	cpu.testAndSetNegative(cpu.a)
+	cpu.testAndSetZero(cpu.a)
+}
+
+func (cpu *MOS6502) txs(ins *instruction, address uint16) {
+	// Transfer Index X to Stack Register
+	cpu.sp = StackTop | uint16(cpu.x)
+}
+
+func (cpu *MOS6502) tya(ins *instruction, address uint16) {
+	// Transfer Index Y to Accumulator
+	cpu.a = cpu.y
+	cpu.testAndSetNegative(cpu.a)
+	cpu.testAndSetZero(cpu.a)
+}

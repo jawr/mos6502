@@ -74,6 +74,7 @@ const (
 	OPC_LDA = "LDA"
 	OPC_LDX = "LDX"
 	OPC_LDY = "LDY"
+	OPC_LSR = "LSR"
 	OPC_NOP = "NOP"
 	OPC_ORA = "ORA"
 	OPC_PHA = "PHA"
@@ -81,7 +82,12 @@ const (
 	OPC_PLA = "PLA"
 	OPC_PLP = "PLP"
 	OPC_STA = "STA"
-	OPC_LSR = "LSR"
+	OPC_TAX = "TAX"
+	OPC_TAY = "TAY"
+	OPC_TSX = "TSX"
+	OPC_TXA = "TXA"
+	OPC_TXS = "TXS"
+	OPC_TYA = "TYA"
 )
 
 // the function that will be executed for this instruction

@@ -1667,3 +1667,208 @@ func TestSTA(t *testing.T) {
 	}
 	tests.run(t)
 }
+
+func TestTAX(t *testing.T) {
+	tests := testCases{
+		{
+			name:           "transfer a to x",
+			program:        []uint8{0xaa},
+			setupA:         newUint8(0x42),
+			cycles:         2,
+			expectA:        newUint8(0x42),
+			expectX:        newUint8(0x42),
+			expectNegative: false,
+			expectZero:     false,
+		},
+		{
+			name:           "transfer zero to x",
+			program:        []uint8{0xaa},
+			setupA:         newUint8(0x00),
+			cycles:         2,
+			expectA:        newUint8(0x00),
+			expectX:        newUint8(0x00),
+			expectNegative: false,
+			expectZero:     true,
+		},
+		{
+			name:           "transfer negative to x",
+			program:        []uint8{0xaa},
+			setupA:         newUint8(0xff),
+			cycles:         2,
+			expectA:        newUint8(0xff),
+			expectX:        newUint8(0xff),
+			expectNegative: true,
+			expectZero:     false,
+		},
+	}
+	tests.run(t)
+}
+
+func TestTAY(t *testing.T) {
+	tests := testCases{
+		{
+			name:           "transfer a to y",
+			program:        []uint8{0xa8},
+			setupA:         newUint8(0x42),
+			cycles:         2,
+			expectA:        newUint8(0x42),
+			expectY:        newUint8(0x42),
+			expectNegative: false,
+			expectZero:     false,
+		},
+		{
+			name:           "transfer zero to y",
+			program:        []uint8{0xa8},
+			setupA:         newUint8(0x00),
+			cycles:         2,
+			expectA:        newUint8(0x00),
+			expectY:        newUint8(0x00),
+			expectNegative: false,
+			expectZero:     true,
+		},
+		{
+			name:           "transfer negative to y",
+			program:        []uint8{0xa8},
+			setupA:         newUint8(0xff),
+			cycles:         2,
+			expectA:        newUint8(0xff),
+			expectY:        newUint8(0xff),
+			expectNegative: true,
+			expectZero:     false,
+		},
+	}
+	tests.run(t)
+}
+
+func TestTSX(t *testing.T) {
+	// initialize test cases
+	tests := testCases{
+		{
+			name:     "positive",
+			program:  []uint8{0xba}, // TSX
+			setupSP:  newUint16(0x0101),
+			expectX:  newUint8(0x01),
+			expectSP: newUint16(0x0101),
+			cycles:   2,
+		},
+		{
+			name:           "negative",
+			program:        []uint8{0xba}, // TSX
+			setupSP:        newUint16(0xfffe),
+			expectX:        newUint8(0xfe),
+			expectSP:       newUint16(0xfffe),
+			cycles:         2,
+			expectNegative: true,
+		},
+		{
+			name:       "zero",
+			program:    []uint8{0xba}, // TSX
+			setupSP:    newUint16(0x0000),
+			expectX:    newUint8(0x00),
+			expectSP:   newUint16(0x0000),
+			cycles:     2,
+			expectZero: true,
+		},
+	}
+	tests.run(t)
+}
+
+func TestTXA(t *testing.T) {
+	tests := testCases{
+		{
+			name:           "transfer X to A",
+			program:        []uint8{0x8a},
+			cycles:         2,
+			setupX:         newUint8(0x42),
+			expectA:        newUint8(0x42),
+			expectX:        newUint8(0x42),
+			expectNegative: false,
+			expectZero:     false,
+		},
+		{
+			name:           "transfer zero to X",
+			program:        []uint8{0x8a},
+			setupA:         newUint8(0x01),
+			cycles:         2,
+			expectA:        newUint8(0x00),
+			expectX:        newUint8(0x00),
+			expectNegative: false,
+			expectZero:     true,
+		},
+		{
+			name:           "transfer negative to X",
+			program:        []uint8{0x8a},
+			cycles:         2,
+			setupX:         newUint8(0xff),
+			expectA:        newUint8(0xff),
+			expectX:        newUint8(0xff),
+			expectNegative: true,
+			expectZero:     false,
+		},
+	}
+	tests.run(t)
+}
+
+func TestTXS(t *testing.T) {
+	// TXS
+	tests := testCases{
+		{
+			name:     "TXS with positive value",
+			program:  []uint8{0x9a},
+			setupX:   newUint8(0x05),
+			cycles:   2,
+			expectSP: newUint16(StackTop | 0x05),
+		},
+		{
+			name:     "TXS with zero value",
+			program:  []uint8{0x9a},
+			setupX:   newUint8(0x00),
+			cycles:   2,
+			expectSP: newUint16(StackTop),
+		},
+		{
+			name:     "TXS with negative value",
+			program:  []uint8{0x9a},
+			setupX:   newUint8(0xf0),
+			cycles:   2,
+			expectSP: newUint16(StackTop | 0xf0),
+		},
+	}
+	tests.run(t)
+}
+
+func TestTYA(t *testing.T) {
+	tests := testCases{
+		{
+			name:           "transfer Y to A",
+			program:        []uint8{0x98},
+			cycles:         2,
+			setupY:         newUint8(0x42),
+			expectA:        newUint8(0x42),
+			expectY:        newUint8(0x42),
+			expectNegative: false,
+			expectZero:     false,
+		},
+		{
+			name:           "transfer zero to Y",
+			program:        []uint8{0x98},
+			setupA:         newUint8(0x01),
+			cycles:         2,
+			expectA:        newUint8(0x00),
+			expectY:        newUint8(0x00),
+			expectNegative: false,
+			expectZero:     true,
+		},
+		{
+			name:           "transfer negative to Y",
+			program:        []uint8{0x98},
+			cycles:         2,
+			setupY:         newUint8(0xff),
+			expectA:        newUint8(0xff),
+			expectY:        newUint8(0xff),
+			expectNegative: true,
+			expectZero:     false,
+		},
+	}
+	tests.run(t)
+}
