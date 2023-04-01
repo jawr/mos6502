@@ -82,6 +82,8 @@ const (
 	OPC_PLA = "PLA"
 	OPC_PLP = "PLP"
 	OPC_STA = "STA"
+	OPC_STX = "STX"
+	OPC_STY = "STY"
 	OPC_TAX = "TAX"
 	OPC_TAY = "TAY"
 	OPC_TSX = "TSX"

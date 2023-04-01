@@ -46,7 +46,7 @@ func TestADC(t *testing.T) {
 			setupA:  newUint8(0x01),
 		},
 		{
-			name:           "zero page without carry",
+			name:           "zeropage without carry",
 			program:        []uint8{0x65, 0x42},
 			memory:         map[uint16]uint8{0x42: 0x80},
 			cycles:         3,
@@ -644,12 +644,12 @@ func TestCPX(t *testing.T) {
 			expectPC: newUint16(ProgramStart + 2),
 		},
 		{
-			name: "Zero Page, equal",
-			// Load the CPX zero page instruction (0xE4) followed by the zero page address 0x10
+			name: "zeropage, equal",
+			// Load the CPX zeropage instruction (0xE4) followed by the zeropage address 0x10
 			program: []uint8{0xE4, 0x10},
 			// Set the X register to 0x42 before executing the instruction
 			setupX: newUint8(0x42),
-			// Set the value at zero page address 0x10 to 0x42
+			// Set the value at zeropage address 0x10 to 0x42
 			memory: map[uint16]uint8{0x10: 0x42},
 			// Run the instruction for 3 cycles
 			cycles: 3,
@@ -739,12 +739,12 @@ func TestCPY(t *testing.T) {
 			expectPC: newUint16(ProgramStart + 2),
 		},
 		{
-			name: "Zero Page, equal",
-			// Load the CPY zero page instruction (0xE4) followed by the zero page address 0x10
+			name: "zeropage, equal",
+			// Load the CPY zeropage instruction (0xE4) followed by the zeropage address 0x10
 			program: []uint8{0xc4, 0x10},
 			// Set the Y register to 0x42 before executing the instruction
 			setupY: newUint8(0x42),
-			// Set the value at zero page address 0x10 to 0x42
+			// Set the value at zeropage address 0x10 to 0x42
 			memory: map[uint16]uint8{0x10: 0x42},
 			// Run the instruction for 3 cycles
 			cycles: 3,
@@ -782,9 +782,9 @@ func TestCPY(t *testing.T) {
 
 func TestDEC(t *testing.T) {
 	tests := testCases{
-		// Test DEC with Zero Page addressing
+		// Test DEC with zeropage addressing
 		{
-			name: "DEC Zero Page",
+			name: "DEC zeropage",
 			program: []uint8{
 				0xc6, 0x10, // DEC $10
 			},
@@ -796,9 +796,9 @@ func TestDEC(t *testing.T) {
 				0x0010: 0x01, // memory location $10 should be decremented to 0x01
 			},
 		},
-		// Test DEC with Zero Page, X addressing
+		// Test DEC with zeropage, X addressing
 		{
-			name: "DEC Zero Page, X",
+			name: "DEC zeropage, X",
 			program: []uint8{
 				0xd6, 0x10, // DEC $10,X
 			},
@@ -917,9 +917,9 @@ func TestEOR(t *testing.T) {
 			expectOverflow: false,
 			expectNegative: true,
 		},
-		// Test EOR Zero Page mode
+		// Test EOR zeropage mode
 		{
-			name:           "EOR zero page mode",
+			name:           "EOR zeropage mode",
 			program:        []uint8{0x45, 0x10}, // EOR $10
 			memory:         map[uint16]uint8{0x0010: 0x0F},
 			setupA:         newUint8(0xF0),
@@ -931,9 +931,9 @@ func TestEOR(t *testing.T) {
 			expectOverflow: false,
 			expectNegative: true,
 		},
-		// Test EOR Zero Page, X mode
+		// Test EOR zeropage, X mode
 		{
-			name:           "EOR zero page, X mode",
+			name:           "EOR zeropage, X mode",
 			program:        []uint8{0x55, 0x10}, // EOR $10, X
 			memory:         map[uint16]uint8{0x0012: 0x0F},
 			setupA:         newUint8(0xF0),
@@ -1666,6 +1666,96 @@ func TestSTA(t *testing.T) {
 		},
 	}
 	tests.run(t)
+}
+
+func TestSTX(t *testing.T) {
+	// test cases
+	tests := testCases{
+		{
+			name: "STX zeropage",
+			program: []uint8{
+				0x86, 0x10,
+			},
+			setupX: newUint8(0x42),
+			expectMemory: map[uint16]uint8{
+				0x0010: 0x42,
+			},
+			expectX: newUint8(0x42),
+			cycles:  3,
+		},
+		{
+			name: "STX zeropage, Y",
+			program: []uint8{
+				0x96, 0x10,
+			},
+			setupX: newUint8(0x42),
+			setupY: newUint8(0x04),
+			expectMemory: map[uint16]uint8{
+				0x0014: 0x42,
+			},
+			expectX: newUint8(0x42),
+			cycles:  4,
+		},
+		{
+			name: "STX absolute",
+			program: []uint8{
+				0x8e, 0x34, 0x12, // STX $1234
+			},
+			setupX: newUint8(0x42),
+			expectMemory: map[uint16]uint8{
+				ProgramStart + 0: 0x8e, // STX $1234
+				ProgramStart + 1: 0x34, // address low byte
+				ProgramStart + 2: 0x12, // address high byte
+				0x1234:           0x42, // X value
+			},
+			expectX: newUint8(0x42),
+			cycles:  4,
+		},
+	}
+	// run tests
+	tests.run(t)
+}
+
+func TestSTY(t *testing.T) {
+	// test cases
+	testCases := testCases{
+		{
+			name: "STY zeropage",
+			program: []uint8{
+				0x84, 0x10, // STY $10
+			},
+			setupY: newUint8(0xab),
+			expectMemory: map[uint16]uint8{
+				0x0010: 0xab,
+			},
+			cycles: 3,
+		},
+		{
+			name: "STY zeropage X",
+			program: []uint8{
+				0x94, 0x10, // STY $10,X
+			},
+			setupY: newUint8(0xcd),
+			setupX: newUint8(0x03),
+			expectMemory: map[uint16]uint8{
+				0x0013: 0xcd,
+			},
+			cycles: 4,
+		},
+		{
+			name: "STY absolute",
+			program: []uint8{
+				0x8c, 0x34, 0x12, // STY $1234
+			},
+			setupY: newUint8(0xef),
+			expectMemory: map[uint16]uint8{
+				0x1234: 0xef,
+			},
+			cycles: 4,
+		},
+	}
+	// run test cases
+	testCases.run(t)
 }
 
 func TestTAX(t *testing.T) {

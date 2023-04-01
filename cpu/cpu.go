@@ -251,6 +251,16 @@ func NewMOS6502() *MOS6502 {
 	cpu.instructions[0x81] = NewInstruction(OPC_STA, 6, 2, cpu.sta, AM_PRE_INDEXED)
 	cpu.instructions[0x91] = NewInstruction(OPC_STA, 6, 2, cpu.sta, AM_POST_INDEXED)
 
+	// STX
+	cpu.instructions[0x86] = NewInstruction(OPC_STX, 3, 2, cpu.stx, AM_ZEROPAGE)
+	cpu.instructions[0x96] = NewInstruction(OPC_STX, 4, 2, cpu.stx, AM_ZEROPAGE_Y)
+	cpu.instructions[0x8e] = NewInstruction(OPC_STX, 4, 3, cpu.stx, AM_ABSOLUTE)
+
+	// STY
+	cpu.instructions[0x84] = NewInstruction(OPC_STY, 3, 2, cpu.sty, AM_ZEROPAGE)
+	cpu.instructions[0x94] = NewInstruction(OPC_STY, 4, 2, cpu.sty, AM_ZEROPAGE_X)
+	cpu.instructions[0x8c] = NewInstruction(OPC_STY, 4, 3, cpu.sty, AM_ABSOLUTE)
+
 	// TAX
 	cpu.instructions[0xaa] = NewInstruction(OPC_TAX, 2, 1, cpu.tax, AM_IMPLIED)
 
