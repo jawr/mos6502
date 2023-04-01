@@ -4,18 +4,20 @@ import (
 	"testing"
 )
 
+const (
+	ProgramStart uint16 = 0xdd00
+)
+
 // setup a program within a cpu and return it
 func setup(program []uint8, bootstrap map[uint16]uint8) *MOS6502 {
 	memory := &Memory{}
 
 	// Reset vector
-	memory[0xfffc] = 0x00
-	memory[0xfffd] = 0xdd
+	memory[RESVectorLow] = uint8(ProgramStart & 0xff)
+	memory[RESVectorHigh] = uint8(ProgramStart >> 8)
 
-	j := 0xdd00
 	for i := 0; i < len(program); i++ {
-		memory[j] = program[i]
-		j++
+		memory[ProgramStart+uint16(i)] = program[i]
 	}
 
 	// map any memory over
@@ -106,7 +108,7 @@ type testCase struct {
 	setupA  *uint8
 	setupX  *uint8
 	setupY  *uint8
-	setupSP *uint8
+	setupSP *uint16
 	setupPC *uint16
 
 	// setup flags
@@ -122,7 +124,7 @@ type testCase struct {
 	// expect flags
 	expectCarry            bool
 	expectZero             bool
-	expectBreak            bool
+	expectBreak            *bool
 	expectReserved         bool // should always be false
 	expectOverflow         bool
 	expectNegative         bool
@@ -133,7 +135,7 @@ type testCase struct {
 	expectA  *uint8
 	expectX  *uint8
 	expectY  *uint8
-	expectSP *uint8
+	expectSP *uint16
 	expectPC *uint16
 
 	// expectMemory to look like this
@@ -174,27 +176,27 @@ func (tc *testCase) setup(t *testing.T) *MOS6502 {
 	setupUint8(&cpu.a, tc.setupA)
 	setupUint8(&cpu.x, tc.setupX)
 	setupUint8(&cpu.y, tc.setupY)
-	setupUint8(&cpu.sp, tc.setupSP)
+	setupUint16(&cpu.sp, tc.setupSP)
 	setupUint16(&cpu.pc, tc.setupPC)
 
 	// setup flags
 	if tc.setupInterruptDisable != nil {
-		cpu.p.set(P_InterruptDisable)
+		cpu.p.set(P_InterruptDisable, *tc.setupInterruptDisable)
 	}
 	if tc.setupDecimal != nil {
-		cpu.p.set(P_Decimal)
+		cpu.p.set(P_Decimal, *tc.setupDecimal)
 	}
 	if tc.setupOverflow != nil {
-		cpu.p.set(P_Overflow)
+		cpu.p.set(P_Overflow, *tc.setupOverflow)
 	}
 	if tc.setupNegative != nil {
-		cpu.p.set(P_Negative)
+		cpu.p.set(P_Negative, *tc.setupNegative)
 	}
 	if tc.setupCarry != nil {
-		cpu.p.set(P_Carry)
+		cpu.p.set(P_Carry, *tc.setupCarry)
 	}
 	if tc.setupZero != nil {
-		cpu.p.set(P_Zero)
+		cpu.p.set(P_Zero, *tc.setupZero)
 	}
 
 	return cpu
@@ -211,7 +213,7 @@ func (tc *testCase) run(t *testing.T, cpu *MOS6502) {
 		expect8(t, cpu.a, tc.expectA)
 		expect8(t, cpu.x, tc.expectX)
 		expect8(t, cpu.y, tc.expectY)
-		expect8(t, cpu.sp, tc.expectSP)
+		expect16(t, cpu.sp, tc.expectSP)
 		expect16(t, cpu.pc, tc.expectPC)
 
 		// assert flags
@@ -227,10 +229,10 @@ func (tc *testCase) run(t *testing.T, cpu *MOS6502) {
 			expectFlag(t, cpu, P_Decimal, *tc.expectDecimal)
 		}
 
-		// TODO
-		// expectFlag(t, cpu, P_Break, tc.expectBreak)
-		// expectFlag(t, cpu, P_Decimal, tc.expectDecimal)
-		// expectFlag(t, cpu, P_Reserved, tc.expectReserved)
+		if tc.expectBreak != nil {
+			expectFlag(t, cpu, P_Break, *tc.expectBreak)
+		}
+		expectFlag(t, cpu, P_Reserved, true)
 
 		if tc.expectMemory != nil {
 			for address := range cpu.memory {

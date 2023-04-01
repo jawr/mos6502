@@ -162,14 +162,14 @@ func TestBCC(t *testing.T) {
 			program:     []uint8{0x90, 0x02},
 			setupCarry:  newBool(true),
 			expectCarry: true,
-			expectPC:    newUint16(0xdd02),
+			expectPC:    newUint16(ProgramStart + 0x02),
 			cycles:      2,
 		},
 		{
 			name:        "branch",
 			program:     []uint8{0x90, 0x10},
 			expectCarry: false,
-			expectPC:    newUint16(0xdd11),
+			expectPC:    newUint16(ProgramStart + 0x11),
 			cycles:      2,
 		},
 	}
@@ -182,7 +182,7 @@ func TestBCS(t *testing.T) {
 			name:        "no branch",
 			program:     []uint8{0xb0, 0x02},
 			expectCarry: false,
-			expectPC:    newUint16(0xdd02),
+			expectPC:    newUint16(ProgramStart + 0x02),
 			cycles:      2,
 		},
 		{
@@ -190,7 +190,7 @@ func TestBCS(t *testing.T) {
 			program:     []uint8{0xb0, 0x10},
 			setupCarry:  newBool(true),
 			expectCarry: true,
-			expectPC:    newUint16(0xdd11),
+			expectPC:    newUint16(ProgramStart + 0x11),
 			cycles:      2,
 		},
 	}
@@ -203,7 +203,7 @@ func TestBEQ(t *testing.T) {
 			name:       "no branch",
 			program:    []uint8{0xf0, 0x02},
 			expectZero: false,
-			expectPC:   newUint16(0xdd02),
+			expectPC:   newUint16(ProgramStart + 0x02),
 			cycles:     2,
 		},
 		{
@@ -211,7 +211,7 @@ func TestBEQ(t *testing.T) {
 			program:    []uint8{0xf0, 0x10},
 			setupZero:  newBool(true),
 			expectZero: true,
-			expectPC:   newUint16(0xdd11),
+			expectPC:   newUint16(ProgramStart + 0x11),
 			cycles:     2,
 		},
 	}
@@ -279,7 +279,7 @@ func TestBMI(t *testing.T) {
 			name:           "no branch",
 			program:        []uint8{0x30, 0x02},
 			expectNegative: false,
-			expectPC:       newUint16(0xdd02),
+			expectPC:       newUint16(ProgramStart + 0x02),
 			cycles:         2,
 		},
 		{
@@ -287,7 +287,7 @@ func TestBMI(t *testing.T) {
 			program:        []uint8{0x30, 0x10},
 			setupNegative:  newBool(true),
 			expectNegative: true,
-			expectPC:       newUint16(0xdd11),
+			expectPC:       newUint16(ProgramStart + 0x11),
 			cycles:         2,
 		},
 	}
@@ -301,14 +301,14 @@ func TestBNE(t *testing.T) {
 			program:    []uint8{0xd0, 0x02},
 			setupZero:  newBool(true),
 			expectZero: true,
-			expectPC:   newUint16(0xdd02),
+			expectPC:   newUint16(ProgramStart + 0x02),
 			cycles:     2,
 		},
 		{
 			name:       "branch",
 			program:    []uint8{0xd0, 0x10},
 			expectZero: false,
-			expectPC:   newUint16(0xdd11),
+			expectPC:   newUint16(ProgramStart + 0x11),
 			cycles:     2,
 		},
 	}
@@ -323,14 +323,14 @@ func TestBPL(t *testing.T) {
 			program:        []uint8{0x10, 0x02},
 			setupNegative:  newBool(true),
 			expectNegative: true,
-			expectPC:       newUint16(0xdd02),
+			expectPC:       newUint16(ProgramStart + 0x02),
 			cycles:         2,
 		},
 		{
 			name:           "branch",
 			program:        []uint8{0x10, 0x10},
 			expectNegative: false,
-			expectPC:       newUint16(0xdd11),
+			expectPC:       newUint16(ProgramStart + 0x11),
 			cycles:         2,
 		},
 	}
@@ -345,18 +345,18 @@ func TestBRK(t *testing.T) {
 				0x00, // BRK
 			},
 			memory: map[uint16]uint8{
-				0xfffa: 0x10,
-				0xfffb: 0x10,
+				NMIVectorLow:  0x10,
+				NMIVectorHigh: 0x10,
 			},
 			expectPC: newUint16(0x1010),
-			expectSP: newUint8(0xfd - 0x03), // lo, hi, pc
+			expectSP: newUint16(StackTop - 0x03), // lo, hi, pc
 			expectMemory: map[uint16]uint8{
-				0x01fd: 0xdd, // push PC high byte
-				0x01fc: 0x01, // push PC low byte
-				0x01fb: 0x34, // push status with B flag set
+				StackTop:       0xdd, // push PC high byte
+				StackTop - 0x1: 0x01, // push PC low byte
+				StackTop - 0x2: 0x34, // push status with B flag set
 			},
 			cycles:                 7,
-			expectBreak:            true,
+			expectBreak:            newBool(true),
 			expectInterruptDisable: newBool(true),
 		},
 	}
@@ -370,14 +370,14 @@ func TestBVC(t *testing.T) {
 			program:        []uint8{0x50, 0x02},
 			setupOverflow:  newBool(true),
 			expectOverflow: true,
-			expectPC:       newUint16(0xdd02),
+			expectPC:       newUint16(ProgramStart + 0x02),
 			cycles:         2,
 		},
 		{
 			name:           "branch",
 			program:        []uint8{0x50, 0x10},
 			expectOverflow: false,
-			expectPC:       newUint16(0xdd11),
+			expectPC:       newUint16(ProgramStart + 0x11),
 			cycles:         2,
 		},
 	}
@@ -390,7 +390,7 @@ func TestBVS(t *testing.T) {
 			name:           "no branch",
 			program:        []uint8{0x70, 0x02},
 			expectOverflow: false,
-			expectPC:       newUint16(0xdd02),
+			expectPC:       newUint16(ProgramStart + 0x02),
 			cycles:         2,
 		},
 		{
@@ -398,7 +398,7 @@ func TestBVS(t *testing.T) {
 			program:        []uint8{0x70, 0x10},
 			setupOverflow:  newBool(true),
 			expectOverflow: true,
-			expectPC:       newUint16(0xdd11),
+			expectPC:       newUint16(ProgramStart + 0x11),
 			cycles:         2,
 		},
 	}
@@ -476,6 +476,306 @@ func TestCLV(t *testing.T) {
 			program:        []uint8{0xb8},
 			expectOverflow: false,
 			cycles:         2,
+		},
+	}
+	tests.run(t)
+}
+
+func TestCMP(t *testing.T) {
+	tests := testCases{
+		{
+			name: "Immediate, equal",
+			program: []uint8{
+				0xC9, // CMP
+				0x0A, // Immediate value
+			},
+			setupA:                 newUint8(0x0A),
+			cycles:                 2,
+			expectA:                newUint8(0x0A),
+			expectPC:               newUint16(ProgramStart + 2),
+			expectZero:             true,
+			expectCarry:            true,
+			expectNegative:         false,
+			expectInterruptDisable: nil,
+			expectDecimal:          nil,
+			expectBreak:            nil,
+			expectMemory:           nil,
+		},
+		{
+			name: "Immediate, greater",
+			program: []uint8{
+				0xC9, // CMP
+				0x05, // Immediate value
+			},
+			setupA:                 newUint8(0x0A),
+			cycles:                 2,
+			expectA:                newUint8(0x0A),
+			expectPC:               newUint16(ProgramStart + 2),
+			expectZero:             false,
+			expectCarry:            true,
+			expectNegative:         false,
+			expectInterruptDisable: nil,
+			expectDecimal:          nil,
+			expectBreak:            nil,
+			expectMemory:           nil,
+		},
+		{
+			name: "Immediate, less",
+			program: []uint8{
+				0xC9, // CMP
+				0x0F, // Immediate value
+			},
+			setupA:                 newUint8(0x0A),
+			cycles:                 2,
+			expectA:                newUint8(0x0A),
+			expectPC:               newUint16(ProgramStart + 2),
+			expectZero:             false,
+			expectCarry:            false,
+			expectNegative:         true,
+			expectInterruptDisable: nil,
+			expectDecimal:          nil,
+			expectBreak:            nil,
+			expectMemory:           nil,
+		},
+		// Add more test cases here for other addressing modes and scenarios
+	}
+	tests.run(t)
+}
+
+func TestCPX(t *testing.T) {
+	tests := testCases{
+		{
+			name: "Immediate, equal",
+			// Load the CPX immediate instruction (0xE0) followed by the value 0x42
+			program: []uint8{0xE0, 0x42},
+			// Set the X register to 0x42 before executing the instruction
+			setupX: newUint8(0x42),
+			// Run the instruction for 2 cycles
+			cycles: 2,
+			// Expect the Zero flag to be true after executing the instruction
+			expectZero: true,
+			// Expect the Carry flag to be true after executing the instruction
+			expectCarry: true,
+			// Expect the Negative flag to be false after executing the instruction
+			expectNegative: false,
+			// Expect the program counter to be incremented by 2 after executing the instruction
+			expectPC: newUint16(ProgramStart + 2),
+		},
+		{
+			name: "Immediate, less",
+			// Load the CPX immediate instruction (0xE0) followed by the value 0x42
+			program: []uint8{0xE0, 0x42},
+			// Set the X register to 0x40 before executing the instruction
+			setupX: newUint8(0x40),
+			// Run the instruction for 2 cycles
+			cycles: 2,
+			// Expect the Zero flag to be false after executing the instruction
+			expectZero: false,
+			// Expect the Carry flag to be false after executing the instruction
+			expectCarry: false,
+			// Expect the Negative flag to be true after executing the instruction
+			expectNegative: true,
+			// Expect the program counter to be incremented by 2 after executing the instruction
+			expectPC: newUint16(ProgramStart + 2),
+		},
+		{
+			name: "Immediate, greater",
+			// Load the CPX immediate instruction (0xE0) followed by the value 0x42
+			program: []uint8{0xE0, 0x42},
+			// Set the X register to 0x44 before executing the instruction
+			setupX: newUint8(0x44),
+			// Run the instruction for 2 cycles
+			cycles: 2,
+			// Expect the Zero flag to be false after executing the instruction
+			expectZero: false,
+			// Expect the Carry flag to be true after executing the instruction
+			expectCarry: true,
+			// Expect the Negative flag to be false after executing the instruction
+			expectNegative: false,
+			// Expect the program counter to be incremented by 2 after executing the instruction
+			expectPC: newUint16(ProgramStart + 2),
+		},
+		{
+			name: "Zero Page, equal",
+			// Load the CPX zero page instruction (0xE4) followed by the zero page address 0x10
+			program: []uint8{0xE4, 0x10},
+			// Set the X register to 0x42 before executing the instruction
+			setupX: newUint8(0x42),
+			// Set the value at zero page address 0x10 to 0x42
+			memory: map[uint16]uint8{0x10: 0x42},
+			// Run the instruction for 3 cycles
+			cycles: 3,
+			// Expect the Zero flag to be true after executing the instruction
+			expectZero: true,
+			// Expect the Carry flag to be true after executing the instruction
+			expectCarry: true,
+			// Expect the Negative flag to be false after executing the instruction
+			expectNegative: false,
+			// Expect the program counter to be incremented by 2 after executing the instruction
+			expectPC: newUint16(ProgramStart + 2),
+		},
+		{
+			name: "Absolute, equal",
+			// Load the CPX absolute instruction (0xEC) followed by the absolute address 0x1234
+			program: []uint8{0xEC, 0x34, 0x12},
+			// Set the X register to 0x42 before executing the instruction
+			setupX: newUint8(0x42),
+			// Set the value at absolute address 0x1234 to 0x42
+			memory: map[uint16]uint8{0x1234: 0x42},
+			// Run the instruction for 4 cycles
+			cycles: 4,
+			// Expect the Zero flag to be true after executing the instruction
+			expectZero: true,
+			// Expect the Carry flag to be true after executing the instruction
+			expectCarry: true,
+			// Expect the Negative flag to be false after executing the instruction
+			expectNegative: false,
+			// Expect the program counter to be incremented by 3 after executing the instruction
+			expectPC: newUint16(ProgramStart + 3),
+		},
+	}
+	tests.run(t)
+}
+
+func TestCPY(t *testing.T) {
+	tests := testCases{
+		{
+			name: "Immediate, equal",
+			// Load the CPY immediate instruction (0xE0) followed by the value 0x42
+			program: []uint8{0xc0, 0x42},
+			// Set the Y register to 0x42 before executing the instruction
+			setupY: newUint8(0x42),
+			// Run the instruction for 2 cycles
+			cycles: 2,
+			// Expect the Zero flag to be true after executing the instruction
+			expectZero: true,
+			// Expect the Carry flag to be true after executing the instruction
+			expectCarry: true,
+			// Expect the Negative flag to be false after executing the instruction
+			expectNegative: false,
+			// Expect the program counter to be incremented by 2 after executing the instruction
+			expectPC: newUint16(ProgramStart + 2),
+		},
+		{
+			name: "Immediate, less",
+			// Load the CPY immediate instruction (0xE0) followed by the value 0x42
+			program: []uint8{0xc0, 0x42},
+			// Set the Y register to 0x40 before executing the instruction
+			setupY: newUint8(0x40),
+			// Run the instruction for 2 cycles
+			cycles: 2,
+			// Expect the Zero flag to be false after executing the instruction
+			expectZero: false,
+			// Expect the Carry flag to be false after executing the instruction
+			expectCarry: false,
+			// Expect the Negative flag to be true after executing the instruction
+			expectNegative: true,
+			// Expect the program counter to be incremented by 2 after executing the instruction
+			expectPC: newUint16(ProgramStart + 2),
+		},
+		{
+			name: "Immediate, greater",
+			// Load the CPY immediate instruction (0xE0) followed by the value 0x42
+			program: []uint8{0xc0, 0x42},
+			// Set the Y register to 0x44 before executing the instruction
+			setupY: newUint8(0x44),
+			// Run the instruction for 2 cycles
+			cycles: 2,
+			// Expect the Zero flag to be false after executing the instruction
+			expectZero: false,
+			// Expect the Carry flag to be true after executing the instruction
+			expectCarry: true,
+			// Expect the Negative flag to be false after executing the instruction
+			expectNegative: false,
+			// Expect the program counter to be incremented by 2 after executing the instruction
+			expectPC: newUint16(ProgramStart + 2),
+		},
+		{
+			name: "Zero Page, equal",
+			// Load the CPY zero page instruction (0xE4) followed by the zero page address 0x10
+			program: []uint8{0xc4, 0x10},
+			// Set the Y register to 0x42 before executing the instruction
+			setupY: newUint8(0x42),
+			// Set the value at zero page address 0x10 to 0x42
+			memory: map[uint16]uint8{0x10: 0x42},
+			// Run the instruction for 3 cycles
+			cycles: 3,
+			// Expect the Zero flag to be true after executing the instruction
+			expectZero: true,
+			// Expect the Carry flag to be true after executing the instruction
+			expectCarry: true,
+			// Expect the Negative flag to be false after executing the instruction
+			expectNegative: false,
+			// Expect the program counter to be incremented by 2 after executing the instruction
+			expectPC: newUint16(ProgramStart + 2),
+		},
+		{
+			name: "Absolute, equal",
+			// Load the CPY absolute instruction (0xEC) followed by the absolute address 0x1234
+			program: []uint8{0xcC, 0x34, 0x12},
+			// Set the Y register to 0x42 before executing the instruction
+			setupY: newUint8(0x42),
+			// Set the value at absolute address 0x1234 to 0x42
+			memory: map[uint16]uint8{0x1234: 0x42},
+			// Run the instruction for 4 cycles
+			cycles: 4,
+			// Expect the Zero flag to be true after executing the instruction
+			expectZero: true,
+			// Expect the Carry flag to be true after executing the instruction
+			expectCarry: true,
+			// Expect the Negative flag to be false after executing the instruction
+			expectNegative: false,
+			// Expect the program counter to be incremented by 3 after executing the instruction
+			expectPC: newUint16(ProgramStart + 3),
+		},
+	}
+	tests.run(t)
+}
+
+func TestDEC(t *testing.T) {
+	tests := testCases{
+		// Test DEC with Zero Page addressing
+		{
+			name: "DEC Zero Page",
+			program: []uint8{
+				0xc6, 0x10, // DEC $10
+			},
+			memory: map[uint16]uint8{
+				0x0010: 0x02, // memory location $10 contains 0x02
+			},
+			cycles: 5,
+			expectMemory: map[uint16]uint8{
+				0x0010: 0x01, // memory location $10 should be decremented to 0x01
+			},
+		},
+		// Test DEC with Zero Page, X addressing
+		{
+			name: "DEC Zero Page, X",
+			program: []uint8{
+				0xd6, 0x10, // DEC $10,X
+			},
+			setupX: newUint8(0x01),
+			memory: map[uint16]uint8{
+				0x0011: 0x03, // memory location $11 ($10 + X) contains 0x03
+			},
+			cycles: 6,
+			expectMemory: map[uint16]uint8{
+				0x0011: 0x02, // memory location $11 should be decremented to 0x02
+			},
+		},
+		// Test DEC with Absolute addressing
+		{
+			name: "DEC Absolute",
+			program: []uint8{
+				0xce, 0x01, 0x20, // DEC $2001
+			},
+			memory: map[uint16]uint8{
+				0x2001: 0x04, // memory location $2001 contains 0x04
+			},
+			cycles: 6,
+			expectMemory: map[uint16]uint8{
+				0x2001: 0x03, // memory location $2001 should be decremented to 0x03
+			},
 		},
 	}
 	tests.run(t)
@@ -585,8 +885,8 @@ func TestJSR(t *testing.T) {
 			name:    "jsr",
 			program: []uint8{0x20, 0x01, 0x04},
 			expectMemory: map[uint16]uint8{
-				0x01fd: 0x01,
-				0x01fc: 0x04,
+				StackTop:        0x01,
+				StackTop - 0x01: 0x04,
 			},
 			cycles: 6,
 		},

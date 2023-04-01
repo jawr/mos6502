@@ -2,6 +2,21 @@ package cpu
 
 import "fmt"
 
+const (
+	// NMI (Non-Maskable Interrupt) vector
+	NMIVectorLow  uint16 = 0xfffa
+	NMIVectorHigh uint16 = 0xfffb
+	// RES (Reset) vector
+	RESVectorLow  uint16 = 0xfffc
+	RESVectorHigh uint16 = 0xfffd
+	// IRQ (Interrupt Request) vector
+	IRQVectorLow  uint16 = 0xfffe
+	IRQVectorHigh uint16 = 0xffff
+	// Stack pointer start
+	StackBottom uint16 = 0x0100
+	StackTop    uint16 = 0x01ff
+)
+
 type MOS6502 struct {
 	// main register
 	a uint8
@@ -10,7 +25,9 @@ type MOS6502 struct {
 	y uint8
 
 	// stack pointer
-	sp uint8
+	// this is actullay an 8 bit register masked to
+	// 0x0100 but we use a 16 bit for convenience
+	sp uint16
 
 	// program counter
 	pc uint16
@@ -109,6 +126,31 @@ func NewMOS6502() *MOS6502 {
 	// CLV
 	cpu.instructions[0xb8] = NewInstruction(OPC_CLV, 2, 1, cpu.clv, AM_IMPLIED)
 
+	// CMP
+	cpu.instructions[0xc9] = NewInstruction(OPC_CMP, 2, 2, cpu.cmp, AM_IMMEDIATE)
+	cpu.instructions[0xc5] = NewInstruction(OPC_CMP, 3, 2, cpu.cmp, AM_ZEROPAGE)
+	cpu.instructions[0xd5] = NewInstruction(OPC_CMP, 4, 2, cpu.cmp, AM_ZEROPAGE_X)
+	cpu.instructions[0xcd] = NewInstruction(OPC_CMP, 4, 3, cpu.cmp, AM_ABSOLUTE)
+	cpu.instructions[0xdd] = NewInstruction(OPC_CMP, 4, 3, cpu.cmp, AM_INDEXED_X)
+	cpu.instructions[0xd9] = NewInstruction(OPC_CMP, 4, 3, cpu.cmp, AM_INDEXED_Y)
+	cpu.instructions[0xc1] = NewInstruction(OPC_CMP, 6, 2, cpu.cmp, AM_PRE_INDEXED)
+	cpu.instructions[0xd1] = NewInstruction(OPC_CMP, 5, 2, cpu.cmp, AM_POST_INDEXED)
+
+	// CPX
+	cpu.instructions[0xe0] = NewInstruction(OPC_CPX, 2, 2, cpu.cpx, AM_IMMEDIATE)
+	cpu.instructions[0xe4] = NewInstruction(OPC_CPX, 3, 2, cpu.cpx, AM_ZEROPAGE)
+	cpu.instructions[0xec] = NewInstruction(OPC_CPX, 4, 3, cpu.cpx, AM_ABSOLUTE)
+
+	// CPY
+	cpu.instructions[0xc0] = NewInstruction(OPC_CPY, 2, 2, cpu.cpy, AM_IMMEDIATE)
+	cpu.instructions[0xc4] = NewInstruction(OPC_CPY, 3, 2, cpu.cpy, AM_ZEROPAGE)
+	cpu.instructions[0xcc] = NewInstruction(OPC_CPY, 4, 3, cpu.cpy, AM_ABSOLUTE)
+
+	// DEC
+	cpu.instructions[0xc6] = NewInstruction(OPC_DEC, 5, 2, cpu.dec, AM_ZEROPAGE)
+	cpu.instructions[0xd6] = NewInstruction(OPC_DEC, 6, 2, cpu.dec, AM_ZEROPAGE_X)
+	cpu.instructions[0xce] = NewInstruction(OPC_DEC, 6, 3, cpu.dec, AM_ABSOLUTE)
+
 	// INC
 	cpu.instructions[0xe6] = NewInstruction(OPC_INC, 5, 2, cpu.inc, AM_ZEROPAGE)
 	cpu.instructions[0xf6] = NewInstruction(OPC_INC, 6, 2, cpu.inc, AM_ZEROPAGE_X)
@@ -190,8 +232,11 @@ func (cpu *MOS6502) Reset(memory *Memory) {
 	cpu.x = 0x0
 	cpu.y = 0x0
 	// reset stack pointer
-	cpu.sp = 0xfd
-	// reset flags
+	cpu.sp = StackTop
+	// reset flags  http://forum.6502.org/viewtopic.php?t=829
+	//    7   6   5   4   3   2   1   0
+	//    N   V       B   D   I   Z   C
+	//    *   *   1   1   0   1   *   *
 	cpu.p = 0b00110100
 
 	cpu.pc = memory.ReadWord(0xfffc)
@@ -227,7 +272,8 @@ func (cpu *MOS6502) Cycle() {
 
 // push a byte onto the stack
 func (cpu *MOS6502) push(b uint8) {
-	cpu.memory[0x100+uint16(cpu.sp)] = b
+	fmt.Printf("pushing %02x to %04x\n", b, cpu.sp)
+	cpu.memory[cpu.sp] = b
 	cpu.sp--
 }
 

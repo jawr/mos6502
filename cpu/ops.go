@@ -86,13 +86,10 @@ func (cpu *MOS6502) bit(ins *instruction, address uint16) {
 
 	cpu.testAndSetZero(cpu.a & value)
 
-	if value&(1<<7) != 0 {
-		cpu.p.set(P_Negative)
-	}
-
-	if value&(1<<6) != 0 {
-		cpu.p.set(P_Overflow)
-	}
+	// check if 8th bit is set
+	cpu.p.set(P_Negative, value&(1<<7) != 0)
+	// check if 7th bit is set
+	cpu.p.set(P_Overflow, value&(1<<6) != 0)
 }
 
 func (cpu *MOS6502) bmi(ins *instruction, address uint16) {
@@ -126,11 +123,11 @@ func (cpu *MOS6502) brk(ins *instruction, address uint16) {
 	cpu.push(uint8(cpu.pc & 0xff))
 
 	// push status register to stack with break flag set
-	cpu.p.set(P_Break)
+	cpu.p.set(P_Break, true)
 	cpu.push(uint8(cpu.p))
 
 	// set intterupt disable
-	cpu.p.set(P_InterruptDisable)
+	cpu.p.set(P_InterruptDisable, true)
 
 	// push interrupt vector to pc
 	hi := uint16(cpu.memory.Read(0xfffa)) << 8
@@ -157,22 +154,71 @@ func (cpu *MOS6502) bvs(ins *instruction, address uint16) {
 
 func (cpu *MOS6502) clc(ins *instruction, address uint16) {
 	// Clear Carry Flag
-	cpu.p.clear(P_Carry)
+	cpu.p.set(P_Carry, false)
 }
 
 func (cpu *MOS6502) cld(ins *instruction, address uint16) {
 	// Clear Decimal Mode
-	cpu.p.clear(P_Decimal)
+	cpu.p.set(P_Decimal, false)
 }
 
 func (cpu *MOS6502) cli(ins *instruction, address uint16) {
 	// Clear Interrupt Disable Bit
-	cpu.p.clear(P_InterruptDisable)
+	cpu.p.set(P_InterruptDisable, false)
 }
 
 func (cpu *MOS6502) clv(ins *instruction, address uint16) {
 	// Clear Overflow Flag
-	cpu.p.clear(P_Overflow)
+	cpu.p.set(P_Overflow, false)
+}
+
+func (cpu *MOS6502) cmp(ins *instruction, address uint16) {
+	// Compare Memory with Accumulator
+	b := cpu.memory.Read(address)
+
+	// check if the memory is less than the accumulator
+	sub := cpu.a - b
+
+	cpu.p.set(P_Carry, cpu.a >= b)
+
+	cpu.testAndSetNegative(sub)
+	cpu.testAndSetZero(sub)
+}
+
+func (cpu *MOS6502) cpx(ins *instruction, address uint16) {
+	// Compare Memory with Accumulator
+	b := cpu.memory.Read(address)
+
+	// check if the memory is less than the accumulator
+	sub := cpu.x - b
+
+	cpu.p.set(P_Carry, cpu.x >= b)
+
+	cpu.testAndSetNegative(sub)
+	cpu.testAndSetZero(sub)
+}
+
+func (cpu *MOS6502) cpy(ins *instruction, address uint16) {
+	// Compare Memory with Accumulator
+	b := cpu.memory.Read(address)
+
+	// check if the memory is less than the accumulator
+	sub := cpu.y - b
+
+	cpu.p.set(P_Carry, cpu.y >= b)
+
+	cpu.testAndSetNegative(sub)
+	cpu.testAndSetZero(sub)
+}
+
+func (cpu *MOS6502) dec(ins *instruction, address uint16) {
+	// Decrement Memory by One
+	b := cpu.memory.Read(address)
+	b = b - 1
+	cpu.memory[address] = b
+
+	cpu.testAndSetNegative(b)
+	cpu.testAndSetZero(b)
 }
 
 func (cpu *MOS6502) inx(ins *instruction, address uint16) {
