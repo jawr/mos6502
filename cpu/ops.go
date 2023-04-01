@@ -346,6 +346,28 @@ func (cpu *MOS6502) pha(ins *instruction, address uint16) {
 	cpu.push(cpu.a)
 }
 
+func (cpu *MOS6502) php(ins *instruction, address uint16) {
+	// Push Processor Status on Stack
+	// The status register will be pushed with the break
+	// flag and bit 5 set to 1.
+	p := uint8(cpu.p) | uint8(P_Break) | uint8(P_Reserved)
+	cpu.push(p)
+}
+
+func (cpu *MOS6502) pla(ins *instruction, address uint16) {
+	// Pull Accumulator from Stack
+	cpu.a = cpu.pop()
+	cpu.testAndSetNegative(cpu.a)
+	cpu.testAndSetZero(cpu.a)
+}
+
+func (cpu *MOS6502) plp(ins *instruction, address uint16) {
+	// Pull Processor Status from Stack
+	p := cpu.pop()
+	cpu.p = flags(p)
+	cpu.p.set(P_Reserved, true)
+}
+
 func (cpu *MOS6502) sta(ins *instruction, address uint16) {
 	// Store Accumulator in Memory
 	cpu.memory[address] = cpu.a

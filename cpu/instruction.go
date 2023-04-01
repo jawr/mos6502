@@ -77,6 +77,9 @@ const (
 	OPC_NOP = "NOP"
 	OPC_ORA = "ORA"
 	OPC_PHA = "PHA"
+	OPC_PHP = "PHP"
+	OPC_PLA = "PLA"
+	OPC_PLP = "PLP"
 	OPC_STA = "STA"
 	OPC_LSR = "LSR"
 )

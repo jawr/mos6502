@@ -233,6 +233,15 @@ func NewMOS6502() *MOS6502 {
 	// PHA
 	cpu.instructions[0x48] = NewInstruction(OPC_PHA, 3, 1, cpu.pha, AM_IMPLIED)
 
+	// PHP
+	cpu.instructions[0x08] = NewInstruction(OPC_PHP, 3, 1, cpu.php, AM_IMPLIED)
+
+	// PLA
+	cpu.instructions[0x68] = NewInstruction(OPC_PLA, 4, 1, cpu.pla, AM_IMPLIED)
+
+	// PLP
+	cpu.instructions[0x28] = NewInstruction(OPC_PLP, 4, 1, cpu.plp, AM_IMPLIED)
+
 	// STA
 	cpu.instructions[0x85] = NewInstruction(OPC_STA, 3, 2, cpu.sta, AM_ZEROPAGE)
 	cpu.instructions[0x95] = NewInstruction(OPC_STA, 4, 2, cpu.sta, AM_ZEROPAGE_X)
@@ -289,14 +298,25 @@ func (cpu *MOS6502) Cycle() {
 	instruction.execute(operand)
 }
 
-// push a byte onto the stack if we go exceed the stack
-// wrap around to the top of the stack
+// push a byte onto the stack if we overflow wrap around to the top of the stack
 func (cpu *MOS6502) push(b uint8) {
 	cpu.memory[StackBottom|cpu.sp] = b
 	cpu.sp--
+	// check for stack overflow
 	if cpu.sp < StackBottom {
 		cpu.sp = StackTop
 	}
+}
+
+// pop a byte off the stack. if we overflow wrap around to the bottom of the stack
+func (cpu *MOS6502) pop() uint8 {
+	cpu.sp++
+	// check for stack overflow
+	if cpu.sp > StackTop {
+		cpu.sp = StackBottom
+	}
+	b := cpu.memory[StackBottom|cpu.sp]
+	return b
 }
 
 func fmt8(n string, b uint8) {

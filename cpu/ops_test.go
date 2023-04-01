@@ -1493,6 +1493,119 @@ func TestPHA(t *testing.T) {
 	tests.run(t)
 }
 
+func TestPHP(t *testing.T) {
+	tests := testCases{
+		{
+			name: "push processor status with zero flag set",
+			program: []uint8{
+				0x08, // PHP
+			},
+			setupCarry:   newBool(false),
+			setupZero:    newBool(true),
+			expectMemory: map[uint16]uint8{StackTop: 0x36},
+			expectSP:     newUint16(StackTop - 0x01),
+			cycles:       3,
+			expectZero:   true,
+			expectCarry:  false,
+		},
+		{
+			name: "push processor status with zero flag and carry set",
+			program: []uint8{
+				0x08, // PHP
+			},
+			setupCarry:   newBool(true),
+			setupZero:    newBool(true),
+			expectMemory: map[uint16]uint8{StackTop: 0x37},
+			expectSP:     newUint16(StackTop - 0x01),
+			cycles:       3,
+			expectZero:   true,
+			expectCarry:  true,
+		},
+		{
+			name: "push processor status with negative flag set",
+			program: []uint8{
+				0x08, // PHP
+			},
+			setupNegative:  newBool(true),
+			expectMemory:   map[uint16]uint8{StackTop: 0xb4},
+			expectSP:       newUint16(StackTop - 0x01),
+			cycles:         3,
+			expectNegative: true,
+		},
+	}
+	tests.run(t)
+}
+
+func TestPLA(t *testing.T) {
+	tests := testCases{
+		{
+			name:     "pull from stack + 1",
+			program:  []uint8{0x68}, // PLA
+			setupSP:  newUint16(StackTop - 0x01),
+			memory:   map[uint16]uint8{StackTop: 0x42},
+			setupA:   newUint8(0x7f),
+			cycles:   4,
+			expectA:  newUint8(0x42),
+			expectSP: newUint16(StackTop),
+		},
+		{
+			name:     "pull from stack wrap to bottom",
+			program:  []uint8{0x68}, // PLA
+			setupSP:  newUint16(StackTop),
+			memory:   map[uint16]uint8{StackBottom: 0x42},
+			setupA:   newUint8(0x7f),
+			cycles:   4,
+			expectA:  newUint8(0x42),
+			expectSP: newUint16(StackBottom),
+		},
+	}
+	tests.run(t)
+}
+
+func TestPLP(t *testing.T) {
+	tests := testCases{
+		{
+			name:                   "PLP sets all flags",
+			program:                []uint8{0x28}, // PLP
+			expectCarry:            true,
+			expectZero:             true,
+			expectDecimal:          newBool(true),
+			expectInterruptDisable: newBool(true),
+			expectOverflow:         true,
+			expectNegative:         true,
+			expectBreak:            newBool(true),
+			expectReserved:         true,
+			cycles:                 4,
+			setupSP:                newUint16(StackTop - 0x01),
+			memory:                 map[uint16]uint8{StackTop: 0xff},
+		},
+		{
+			name:                   "PLP sets no flags",
+			program:                []uint8{0x28}, // PLP
+			expectCarry:            false,
+			expectZero:             false,
+			expectDecimal:          newBool(false),
+			expectInterruptDisable: newBool(false),
+			expectOverflow:         false,
+			expectNegative:         false,
+			cycles:                 4,
+			setupSP:                newUint16(StackTop - 0x01),
+			memory:                 map[uint16]uint8{StackTop: 0x00},
+		},
+		{
+			name:                   "PLP sets some flags",
+			program:                []uint8{0x28}, // PLP
+			expectDecimal:          newBool(true),
+			expectInterruptDisable: newBool(true),
+			expectNegative:         true,
+			cycles:                 4,
+			setupSP:                newUint16(StackTop - 0x01),
+			memory:                 map[uint16]uint8{StackTop: 0x8c},
+		},
+	}
+	tests.run(t)
+}
+
 func TestSTA(t *testing.T) {
 	tests := testCases{
 		{
