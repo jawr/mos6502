@@ -1606,6 +1606,51 @@ func TestPLP(t *testing.T) {
 	tests.run(t)
 }
 
+func TestSEC(t *testing.T) {
+	// test cases
+	tests := testCases{
+		{
+			name:        "carry flag clear",
+			program:     []uint8{0x38}, // SEC
+			cycles:      2,
+			setupCarry:  newBool(false),
+			expectCarry: true,
+		},
+		{
+			name:        "carry flag set",
+			program:     []uint8{0x38}, // SEC
+			cycles:      2,
+			setupCarry:  newBool(true),
+			expectCarry: true,
+		},
+	}
+	// run test cases
+	tests.run(t)
+}
+
+func TestSED(t *testing.T) {
+	// SED should set decimal flag to true
+	testCases{
+		{
+			name:          "Set decimal flag",
+			program:       []uint8{0xF8},
+			cycles:        2,
+			expectDecimal: newBool(true),
+		},
+	}.run(t)
+}
+
+func TestSEI(t *testing.T) {
+	testCases{
+		{
+			name:                   "Set interrupt disable flag",
+			program:                []uint8{0x78},
+			cycles:                 2,
+			expectInterruptDisable: newBool(true),
+		},
+	}.run(t)
+}
+
 func TestSTA(t *testing.T) {
 	tests := testCases{
 		{

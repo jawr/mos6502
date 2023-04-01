@@ -242,6 +242,15 @@ func NewMOS6502() *MOS6502 {
 	// PLP
 	cpu.instructions[0x28] = NewInstruction(OPC_PLP, 4, 1, cpu.plp, AM_IMPLIED)
 
+	// SEC
+	cpu.instructions[0x38] = NewInstruction(OPC_SEC, 2, 1, cpu.sec, AM_IMPLIED)
+
+	// SED
+	cpu.instructions[0xf8] = NewInstruction(OPC_SED, 2, 1, cpu.sed, AM_IMPLIED)
+
+	// SEI
+	cpu.instructions[0x78] = NewInstruction(OPC_SEI, 2, 1, cpu.sei, AM_IMPLIED)
+
 	// STA
 	cpu.instructions[0x85] = NewInstruction(OPC_STA, 3, 2, cpu.sta, AM_ZEROPAGE)
 	cpu.instructions[0x95] = NewInstruction(OPC_STA, 4, 2, cpu.sta, AM_ZEROPAGE_X)

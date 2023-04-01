@@ -368,6 +368,21 @@ func (cpu *MOS6502) plp(ins *instruction, address uint16) {
 	cpu.p.set(P_Reserved, true)
 }
 
+func (cpu *MOS6502) sec(ins *instruction, address uint16) {
+	// Set Carry Flag
+	cpu.p.set(P_Carry, true)
+}
+
+func (cpu *MOS6502) sed(ins *instruction, address uint16) {
+	// Set Decimal Flag
+	cpu.p.set(P_Decimal, true)
+}
+
+func (cpu *MOS6502) sei(ins *instruction, address uint16) {
+	// Set Interrupt Disable Status
+	cpu.p.set(P_InterruptDisable, true)
+}
+
 func (cpu *MOS6502) sta(ins *instruction, address uint16) {
 	// Store Accumulator in Memory
 	cpu.memory[address] = cpu.a
