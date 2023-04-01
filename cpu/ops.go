@@ -221,6 +221,28 @@ func (cpu *MOS6502) dec(ins *instruction, address uint16) {
 	cpu.testAndSetZero(b)
 }
 
+func (cpu *MOS6502) dex(ins *instruction, address uint16) {
+	// Decrement Index X by One
+	cpu.x--
+	cpu.testAndSetNegative(cpu.x)
+	cpu.testAndSetZero(cpu.x)
+}
+
+func (cpu *MOS6502) dey(ins *instruction, address uint16) {
+	// Decrement Index Y by One
+	cpu.y--
+	cpu.testAndSetNegative(cpu.y)
+	cpu.testAndSetZero(cpu.y)
+}
+
+func (cpu *MOS6502) eor(ins *instruction, address uint16) {
+	// Exclusive-OR Memory with Accumulator
+	value := cpu.memory.Read(address)
+	cpu.a = cpu.a ^ value
+	cpu.testAndSetNegative(cpu.a)
+	cpu.testAndSetZero(cpu.a)
+}
+
 func (cpu *MOS6502) inx(ins *instruction, address uint16) {
 	// Increment Index X by One
 	cpu.x++

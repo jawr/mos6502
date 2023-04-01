@@ -781,6 +781,200 @@ func TestDEC(t *testing.T) {
 	tests.run(t)
 }
 
+func TestDEX(t *testing.T) {
+	tests := testCases{
+		{
+			name:           "DEX - Zero flag set",
+			program:        []uint8{0xca},  // DEX opcode
+			setupX:         newUint8(0x01), // Initial value of X register
+			cycles:         2,
+			expectX:        newUint8(0x00), // Expect X register to be decremented by 1
+			expectPC:       newUint16(0xdd01),
+			expectZero:     true,
+			expectNegative: false,
+		},
+		{
+			name:           "DEX - Negative flag set",
+			program:        []uint8{0xca},  // DEX opcode
+			setupX:         newUint8(0x00), // Initial value of X register
+			cycles:         2,
+			expectX:        newUint8(0xff), // Expect X register to wrap around and become 0xFF
+			expectPC:       newUint16(0xdd01),
+			expectZero:     false,
+			expectNegative: true,
+		},
+		{
+			name:           "DEX - No flags set",
+			program:        []uint8{0xca},  // DEX opcode
+			setupX:         newUint8(0x02), // Initial value of X register
+			cycles:         2,
+			expectX:        newUint8(0x01), // Expect X register to be decremented by 1
+			expectPC:       newUint16(0xdd01),
+			expectZero:     false,
+			expectNegative: false,
+		},
+	}
+	tests.run(t)
+}
+
+func TestDEY(t *testing.T) {
+	tests := testCases{
+		{
+			name:           "DEY - Zero flag set",
+			program:        []uint8{0x88},  // DEY opcode
+			setupY:         newUint8(0x01), // Initial value of Y register
+			cycles:         2,
+			expectY:        newUint8(0x00), // Expect Y register to be decremented by 1
+			expectPC:       newUint16(0xdd01),
+			expectZero:     true,
+			expectNegative: false,
+		},
+		{
+			name:           "DEY - Negative flag set",
+			program:        []uint8{0x88},  // DEY opcode
+			setupY:         newUint8(0x00), // Initial value of Y register
+			cycles:         2,
+			expectY:        newUint8(0xff), // Expect Y register to wrap around and become 0xFF
+			expectPC:       newUint16(0xdd01),
+			expectZero:     false,
+			expectNegative: true,
+		},
+		{
+			name:           "DEY - No flags set",
+			program:        []uint8{0x88},  // DEY opcode
+			setupY:         newUint8(0x02), // Initial value of Y register
+			cycles:         2,
+			expectY:        newUint8(0x01), // Expect Y register to be decremented by 1
+			expectPC:       newUint16(0xdd01),
+			expectZero:     false,
+			expectNegative: false,
+		},
+	}
+	tests.run(t)
+}
+
+func TestEOR(t *testing.T) {
+	tests := testCases{
+		// Test EOR Immediate mode
+		{
+			name:           "EOR immediate mode, no carry",
+			program:        []uint8{0x49, 0x0F}, // EOR #$0F
+			memory:         make(map[uint16]uint8),
+			setupA:         newUint8(0xF0),
+			cycles:         2,
+			expectA:        newUint8(0xFF),
+			expectPC:       newUint16(ProgramStart + 2),
+			expectCarry:    false,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: true,
+		},
+		// Test EOR Zero Page mode
+		{
+			name:           "EOR zero page mode",
+			program:        []uint8{0x45, 0x10}, // EOR $10
+			memory:         map[uint16]uint8{0x0010: 0x0F},
+			setupA:         newUint8(0xF0),
+			cycles:         3,
+			expectA:        newUint8(0xFF),
+			expectPC:       newUint16(ProgramStart + 2),
+			expectCarry:    false,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: true,
+		},
+		// Test EOR Zero Page, X mode
+		{
+			name:           "EOR zero page, X mode",
+			program:        []uint8{0x55, 0x10}, // EOR $10, X
+			memory:         map[uint16]uint8{0x0012: 0x0F},
+			setupA:         newUint8(0xF0),
+			setupX:         newUint8(0x02),
+			cycles:         4,
+			expectA:        newUint8(0xFF),
+			expectPC:       newUint16(ProgramStart + 2),
+			expectCarry:    false,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: true,
+		},
+		{
+			name:           "EOR absolute mode",
+			program:        []uint8{0x4D, 0x00, 0x20}, // EOR $2000
+			memory:         map[uint16]uint8{0x2000: 0x0F},
+			setupA:         newUint8(0xF0),
+			cycles:         4,
+			expectA:        newUint8(0xFF),
+			expectPC:       newUint16(ProgramStart + 3),
+			expectCarry:    false,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: true,
+		},
+		// Test EOR Absolute, X mode
+		{
+			name:           "EOR absolute, X mode",
+			program:        []uint8{0x5D, 0x00, 0x20}, // EOR $2000, X
+			memory:         map[uint16]uint8{0x2002: 0x0F},
+			setupA:         newUint8(0xF0),
+			setupX:         newUint8(0x02),
+			cycles:         4, // Add an extra cycle if a page boundary is crossed
+			expectA:        newUint8(0xFF),
+			expectPC:       newUint16(ProgramStart + 3),
+			expectCarry:    false,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: true,
+		},
+		// Test EOR Absolute, Y mode
+		{
+			name:           "EOR absolute, Y mode",
+			program:        []uint8{0x59, 0x00, 0x20}, // EOR $2000, Y
+			memory:         map[uint16]uint8{0x2002: 0x0F},
+			setupA:         newUint8(0xF0),
+			setupY:         newUint8(0x02),
+			cycles:         4, // Add an extra cycle if a page boundary is crossed
+			expectA:        newUint8(0xFF),
+			expectPC:       newUint16(ProgramStart + 3),
+			expectCarry:    false,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: true,
+		},
+		// Test EOR Indirect, X mode
+		{
+			name:           "EOR indirect, X mode",
+			program:        []uint8{0x41, 0x10}, // EOR ($10, X)
+			memory:         map[uint16]uint8{0x0012: 0x00, 0x0013: 0x20, 0x2000: 0x0F},
+			setupA:         newUint8(0xF0),
+			setupX:         newUint8(0x02),
+			cycles:         6,
+			expectA:        newUint8(0xFF),
+			expectPC:       newUint16(ProgramStart + 2),
+			expectCarry:    false,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: true,
+		},
+		// Test EOR Indirect, Y mode
+		{
+			name:           "EOR indirect, Y mode",
+			program:        []uint8{0x51, 0x10}, // EOR ($10), Y
+			memory:         map[uint16]uint8{0x0010: 0x00, 0x0011: 0x20, 0x2002: 0x0F},
+			setupA:         newUint8(0xF0),
+			setupY:         newUint8(0x02),
+			cycles:         5, // Add an extra cycle if a page boundary is crossed
+			expectA:        newUint8(0xFF),
+			expectPC:       newUint16(ProgramStart + 2),
+			expectCarry:    false,
+			expectZero:     false,
+			expectOverflow: false,
+			expectNegative: true,
+		},
+	}
+	tests.run(t)
+}
+
 func TestINX(t *testing.T) {
 	tests := testCases{
 		{

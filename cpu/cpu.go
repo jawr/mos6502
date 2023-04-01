@@ -151,6 +151,22 @@ func NewMOS6502() *MOS6502 {
 	cpu.instructions[0xd6] = NewInstruction(OPC_DEC, 6, 2, cpu.dec, AM_ZEROPAGE_X)
 	cpu.instructions[0xce] = NewInstruction(OPC_DEC, 6, 3, cpu.dec, AM_ABSOLUTE)
 
+	// DEX
+	cpu.instructions[0xca] = NewInstruction(OPC_DEX, 2, 1, cpu.dex, AM_IMPLIED)
+
+	// DEY
+	cpu.instructions[0x88] = NewInstruction(OPC_DEY, 2, 1, cpu.dey, AM_IMPLIED)
+
+	// EOR
+	cpu.instructions[0x49] = NewInstruction(OPC_EOR, 2, 2, cpu.eor, AM_IMMEDIATE)
+	cpu.instructions[0x45] = NewInstruction(OPC_EOR, 3, 2, cpu.eor, AM_ZEROPAGE)
+	cpu.instructions[0x55] = NewInstruction(OPC_EOR, 4, 2, cpu.eor, AM_ZEROPAGE_X)
+	cpu.instructions[0x4d] = NewInstruction(OPC_EOR, 4, 3, cpu.eor, AM_ABSOLUTE)
+	cpu.instructions[0x5d] = NewInstruction(OPC_EOR, 4, 3, cpu.eor, AM_INDEXED_X)
+	cpu.instructions[0x59] = NewInstruction(OPC_EOR, 4, 3, cpu.eor, AM_INDEXED_Y)
+	cpu.instructions[0x41] = NewInstruction(OPC_EOR, 6, 2, cpu.eor, AM_PRE_INDEXED)
+	cpu.instructions[0x51] = NewInstruction(OPC_EOR, 5, 2, cpu.eor, AM_POST_INDEXED)
+
 	// INC
 	cpu.instructions[0xe6] = NewInstruction(OPC_INC, 5, 2, cpu.inc, AM_ZEROPAGE)
 	cpu.instructions[0xf6] = NewInstruction(OPC_INC, 6, 2, cpu.inc, AM_ZEROPAGE_X)
