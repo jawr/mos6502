@@ -71,11 +71,12 @@ const (
 	OPC_INY = "INY"
 	OPC_JMP = "JMP"
 	OPC_JSR = "JSR"
-	OPC_NOP = "NOP"
 	OPC_LDA = "LDA"
 	OPC_LDX = "LDX"
 	OPC_LDY = "LDY"
+	OPC_NOP = "NOP"
 	OPC_ORA = "ORA"
+	OPC_PHA = "PHA"
 	OPC_STA = "STA"
 	OPC_LSR = "LSR"
 )
@@ -139,8 +140,7 @@ func (i *instruction) parseOperand(cpu *MOS6502) uint16 {
 		address := cpu.memory.Read(cpu.pc)
 		// add contents of x register
 		address += cpu.x
-		// address will have wrapped around meaning we stay
-		// in zp
+		// address is 8 bits so will wrap around in the zeropage
 		return uint16(address)
 
 	case AM_ZEROPAGE_Y:
@@ -148,8 +148,7 @@ func (i *instruction) parseOperand(cpu *MOS6502) uint16 {
 		address := cpu.memory.Read(cpu.pc)
 		// add contents of y register
 		address += cpu.y
-		// address will have wrapped around meaning we stay
-		// in zp
+		// address is 8 bits so will wrap around in the zeropage
 		return uint16(address)
 
 	case AM_INDEXED_X:

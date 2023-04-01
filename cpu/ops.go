@@ -130,8 +130,8 @@ func (cpu *MOS6502) brk(ins *instruction, address uint16) {
 	cpu.p.set(P_InterruptDisable, true)
 
 	// push interrupt vector to pc
-	hi := uint16(cpu.memory.Read(0xfffa)) << 8
-	lo := uint16(cpu.memory.Read(0xfffb))
+	hi := uint16(cpu.memory.Read(IRQVectorHigh)) << 8
+	lo := uint16(cpu.memory.Read(IRQVectorLow))
 
 	cpu.pc = uint16(lo | hi)
 }
@@ -280,10 +280,6 @@ func (cpu *MOS6502) jsr(ins *instruction, address uint16) {
 	cpu.push(hi)
 }
 
-func (cpu *MOS6502) nop(ins *instruction, address uint16) {
-	// No Operation
-}
-
 func (cpu *MOS6502) lda(ins *instruction, address uint16) {
 	// Load Accumulator with Memory
 	value := cpu.memory.ReadWord(address)
@@ -332,6 +328,10 @@ func (cpu *MOS6502) lsr(ins *instruction, address uint16) {
 	cpu.testAndSetCarry(shifted)
 }
 
+func (cpu *MOS6502) nop(ins *instruction, address uint16) {
+	// No Operation
+}
+
 func (cpu *MOS6502) ora(ins *instruction, address uint16) {
 	// Or Memory with Accumulator
 	value := cpu.memory.Read(address)
@@ -339,6 +339,11 @@ func (cpu *MOS6502) ora(ins *instruction, address uint16) {
 
 	cpu.testAndSetNegative(cpu.a)
 	cpu.testAndSetZero(cpu.a)
+}
+
+func (cpu *MOS6502) pha(ins *instruction, address uint16) {
+	// Push Accumulator on Stack
+	cpu.push(cpu.a)
 }
 
 func (cpu *MOS6502) sta(ins *instruction, address uint16) {

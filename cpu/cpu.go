@@ -186,9 +186,6 @@ func NewMOS6502() *MOS6502 {
 	// JSR
 	cpu.instructions[0x20] = NewInstruction(OPC_JSR, 6, 3, cpu.jsr, AM_ABSOLUTE)
 
-	// NOP
-	cpu.instructions[0xea] = NewInstruction(OPC_NOP, 2, 1, cpu.nop, AM_IMPLIED)
-
 	// LDA
 	cpu.instructions[0xa9] = NewInstruction(OPC_LDA, 2, 2, cpu.lda, AM_IMMEDIATE)
 	cpu.instructions[0xa5] = NewInstruction(OPC_LDA, 3, 2, cpu.lda, AM_ZEROPAGE)
@@ -220,6 +217,9 @@ func NewMOS6502() *MOS6502 {
 	cpu.instructions[0x4e] = NewInstruction(OPC_LSR, 6, 3, cpu.lsr, AM_ABSOLUTE)
 	cpu.instructions[0x5e] = NewInstruction(OPC_LSR, 7, 3, cpu.lsr, AM_INDEXED_X)
 
+	// NOP
+	cpu.instructions[0xea] = NewInstruction(OPC_NOP, 2, 1, cpu.nop, AM_IMPLIED)
+
 	// ORA
 	cpu.instructions[0x09] = NewInstruction(OPC_ORA, 2, 2, cpu.ora, AM_IMMEDIATE)
 	cpu.instructions[0x05] = NewInstruction(OPC_ORA, 3, 2, cpu.ora, AM_ZEROPAGE)
@@ -229,6 +229,9 @@ func NewMOS6502() *MOS6502 {
 	cpu.instructions[0x19] = NewInstruction(OPC_ORA, 4, 3, cpu.ora, AM_INDEXED_Y)
 	cpu.instructions[0x01] = NewInstruction(OPC_ORA, 6, 2, cpu.ora, AM_PRE_INDEXED)
 	cpu.instructions[0x11] = NewInstruction(OPC_ORA, 5, 2, cpu.ora, AM_POST_INDEXED)
+
+	// PHA
+	cpu.instructions[0x48] = NewInstruction(OPC_PHA, 3, 1, cpu.pha, AM_IMPLIED)
 
 	// STA
 	cpu.instructions[0x85] = NewInstruction(OPC_STA, 3, 2, cpu.sta, AM_ZEROPAGE)
@@ -286,11 +289,14 @@ func (cpu *MOS6502) Cycle() {
 	instruction.execute(operand)
 }
 
-// push a byte onto the stack
+// push a byte onto the stack if we go exceed the stack
+// wrap around to the top of the stack
 func (cpu *MOS6502) push(b uint8) {
-	fmt.Printf("pushing %02x to %04x\n", b, cpu.sp)
-	cpu.memory[cpu.sp] = b
+	cpu.memory[StackBottom|cpu.sp] = b
 	cpu.sp--
+	if cpu.sp < StackBottom {
+		cpu.sp = StackTop
+	}
 }
 
 func fmt8(n string, b uint8) {

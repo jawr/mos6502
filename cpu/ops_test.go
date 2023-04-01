@@ -345,8 +345,8 @@ func TestBRK(t *testing.T) {
 				0x00, // BRK
 			},
 			memory: map[uint16]uint8{
-				NMIVectorLow:  0x10,
-				NMIVectorHigh: 0x10,
+				IRQVectorLow:  0x10,
+				IRQVectorHigh: 0x10,
 			},
 			expectPC: newUint16(0x1010),
 			expectSP: newUint16(StackTop - 0x03), // lo, hi, pc
@@ -354,6 +354,54 @@ func TestBRK(t *testing.T) {
 				StackTop:       0xdd, // push PC high byte
 				StackTop - 0x1: 0x01, // push PC low byte
 				StackTop - 0x2: 0x34, // push status with B flag set
+			},
+			cycles:                 7,
+			expectBreak:            newBool(true),
+			expectInterruptDisable: newBool(true),
+		},
+		{
+			name: "BRK with other flags set",
+			program: []uint8{
+				0x00, // BRK
+			},
+			memory: map[uint16]uint8{
+				IRQVectorLow:  0x10,
+				IRQVectorHigh: 0x10,
+			},
+			setupCarry:    newBool(true),
+			setupZero:     newBool(true),
+			setupOverflow: newBool(true),
+			setupNegative: newBool(true),
+			expectPC:      newUint16(0x1010),
+			expectSP:      newUint16(StackTop - 0x03),
+			expectMemory: map[uint16]uint8{
+				StackTop:       0xdd,
+				StackTop - 0x1: 0x01,
+				StackTop - 0x2: 0xF7, // All flags set except zero
+			},
+			cycles:                 7,
+			expectBreak:            newBool(true),
+			expectInterruptDisable: newBool(true),
+			expectCarry:            true,
+			expectZero:             true,
+			expectOverflow:         true,
+			expectNegative:         true,
+		},
+		{
+			name: "BRK with no other flags set",
+			program: []uint8{
+				0x00, // BRK
+			},
+			memory: map[uint16]uint8{
+				IRQVectorLow:  0x10,
+				IRQVectorHigh: 0x10,
+			},
+			expectPC: newUint16(0x1010),
+			expectSP: newUint16(StackTop - 0x03),
+			expectMemory: map[uint16]uint8{
+				StackTop:       0xdd,
+				StackTop - 0x1: 0x01,
+				StackTop - 0x2: 0x34, // Only B flag and reserved flag set
 			},
 			cycles:                 7,
 			expectBreak:            newBool(true),
@@ -1411,6 +1459,35 @@ func TestORA(t *testing.T) {
 			setupA:  newUint8(0x10),
 			setupY:  newUint8(0x01),
 			expectA: newUint8(0x52),
+		},
+	}
+	tests.run(t)
+}
+
+func TestPHA(t *testing.T) {
+	tests := testCases{
+		{
+			name:     "PHA basic",
+			program:  []uint8{0x48}, // PHA
+			setupA:   newUint8(0x42),
+			cycles:   3,
+			expectA:  newUint8(0x42),
+			expectSP: newUint16(0x01fe),
+			expectMemory: map[uint16]uint8{
+				StackTop: 0x42,
+			},
+		},
+		{
+			name:     "PHA with wraparound",
+			program:  []uint8{0x48}, // PHA
+			setupA:   newUint8(0x42),
+			setupSP:  newUint16(StackBottom),
+			cycles:   3,
+			expectA:  newUint8(0x42),
+			expectSP: newUint16(StackTop),
+			expectMemory: map[uint16]uint8{
+				StackBottom: 0x42,
+			},
 		},
 	}
 	tests.run(t)
