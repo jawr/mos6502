@@ -1308,11 +1308,11 @@ func TestLDY(t *testing.T) {
 			expectY: newUint8(0x1),
 		},
 		{
-			name:    "zeropage,y",
+			name:    "zeropage,x",
 			program: []uint8{0xb4, 0x42},
 			memory:  map[uint16]uint8{0x0043: 0x1},
 			cycles:  4,
-			setupY:  newUint8(0x1),
+			setupX:  newUint8(0x1),
 			expectY: newUint8(0x1),
 		},
 		{
@@ -1323,12 +1323,12 @@ func TestLDY(t *testing.T) {
 			expectY: newUint8(0x1),
 		},
 		{
-			name:    "absolute,y",
+			name:    "absolute,x",
 			program: []uint8{0xbc, 0x42, 0xaa},
 			memory:  map[uint16]uint8{0xaa43: 0x1},
 			cycles:  4,
+			setupX:  newUint8(0x1),
 			expectY: newUint8(0x1),
-			setupY:  newUint8(0x1),
 		},
 	}
 	tests.run(t)

@@ -48,7 +48,15 @@ func main() {
 		case <-clock.C:
 			cpu.Cycle()
 			if cpu.Stop() {
+				addresses := []uint16{0x0015, 0x0218}
+
 				log.Printf("CPU stopped...")
+				log.Printf("--------------")
+				log.Printf("Memory...")
+				for _, m := range addresses {
+					log.Printf("%04x : %04x", m, memory[m])
+				}
+				log.Printf("--------------")
 				os.Exit(1)
 			}
 

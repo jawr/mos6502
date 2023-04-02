@@ -30,6 +30,7 @@ func (cpu *MOS6502) disassembleInstruction(address uint16) *DisassembledInstruct
 	disassembly = fmt.Sprintf("%s ", instruction.opc)
 
 	switch instruction.mode {
+	case AM_ACCUMULATOR:
 	case AM_IMPLIED:
 		// No additional operands
 	case AM_IMMEDIATE:
@@ -38,9 +39,9 @@ func (cpu *MOS6502) disassembleInstruction(address uint16) *DisassembledInstruct
 		disassembly += fmt.Sprintf("$%04X", operand)
 	case AM_ZEROPAGE:
 		disassembly += fmt.Sprintf("$%02X", operand&0xFF)
-	case AM_INDEXED_X:
+	case AM_ABSOLUTE_X:
 		disassembly += fmt.Sprintf("$%04X,X", operand)
-	case AM_INDEXED_Y:
+	case AM_ABSOLUTE_Y:
 		disassembly += fmt.Sprintf("$%04X,Y", operand)
 	case AM_ZEROPAGE_X:
 		disassembly += fmt.Sprintf("$%02X,X", operand&0xFF)
@@ -48,9 +49,9 @@ func (cpu *MOS6502) disassembleInstruction(address uint16) *DisassembledInstruct
 		disassembly += fmt.Sprintf("$%02X,Y", operand&0xFF)
 	case AM_INDIRECT:
 		disassembly += fmt.Sprintf("($%04X)", operand)
-	case AM_PRE_INDEXED:
+	case AM_INDIRECT_X:
 		disassembly += fmt.Sprintf("($%02X,X)", operand&0xFF)
-	case AM_POST_INDEXED:
+	case AM_INDIRECT_Y:
 		disassembly += fmt.Sprintf("($%02X),Y", operand&0xFF)
 	case AM_RELATIVE:
 		disassembly += fmt.Sprintf("$%04X", address+2+uint16(int8(operand&0xFF)))

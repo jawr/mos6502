@@ -9,7 +9,7 @@ const (
 	ProgramStart uint16 = 0xdd00
 )
 
-const DebugTests = true
+const DebugTests = false
 
 // setup a program within a cpu and return it
 func setup(program []uint8, bootstrap map[uint16]uint8) *MOS6502 {
