@@ -132,15 +132,15 @@ func (cpu *MOS6502) Cycle() {
 	if cpu.Debug {
 		disasm := cpu.disassembleInstruction(cpu.pc)
 		log.Printf(
-			"%04x : %02x\t%-30s\tA:%02x X:%02x Y:%02x SP:%04x [%s] Stack: [%s]",
+			"%04x : %02x\t%-30s\t%s\tA:%02x X:%02x Y:%02x\tSP:%04x [%s]",
 			cpu.pc,
 			opcode,
 			disasm.Disassembly,
+			cpu.p.String(),
 			cpu.a,
 			cpu.x,
 			cpu.y,
 			cpu.sp,
-			cpu.p.String(),
 			cpu.sprintStack(),
 		)
 	}
@@ -187,7 +187,10 @@ func (cpu *MOS6502) pop() uint8 {
 func (cpu *MOS6502) sprintStack() string {
 	b := &strings.Builder{}
 	for i := cpu.sp; i >= StackTop; i-- {
-		b.WriteString(fmt.Sprintf("%04x : %02x, ", i, cpu.memory[StackBottom|i]))
+		if i != cpu.sp {
+			b.WriteString(" ")
+		}
+		b.WriteString(fmt.Sprintf("%02x", cpu.memory[StackBottom|i]))
 	}
 	return b.String()
 }
