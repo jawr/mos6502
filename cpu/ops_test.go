@@ -158,19 +158,30 @@ func TestASL(t *testing.T) {
 func TestBCC(t *testing.T) {
 	tests := testCases{
 		{
+			// Test BCC with carry flag set; the branch should not be taken
 			name:        "no branch",
-			program:     []uint8{0x90, 0x02},
+			program:     []uint8{0x90, 0x10},
 			setupCarry:  newBool(true),
 			expectCarry: true,
 			expectPC:    newUint16(ProgramStart + 0x02),
 			cycles:      2,
 		},
 		{
+			// Test BCC with carry flag clear; the branch should be taken
 			name:        "branch",
 			program:     []uint8{0x90, 0x10},
 			expectCarry: false,
-			expectPC:    newUint16(ProgramStart + 0x11),
-			cycles:      2,
+			expectPC:    newUint16(ProgramStart + 0x02 + 0x10),
+			cycles:      3,
+		},
+		{
+			// Test BCC with carry flag clear and crossing a page boundary
+			// The branch should be taken, and an extra cycle should be consumed
+			name:        "branch with page boundary crossing",
+			program:     []uint8{0x90, 0xF6},
+			expectCarry: false,
+			expectPC:    newUint16(ProgramStart - 0x8),
+			cycles:      4,
 		},
 	}
 	tests.run(t)
@@ -190,7 +201,7 @@ func TestBCS(t *testing.T) {
 			program:     []uint8{0xb0, 0x10},
 			setupCarry:  newBool(true),
 			expectCarry: true,
-			expectPC:    newUint16(ProgramStart + 0x11),
+			expectPC:    newUint16(ProgramStart + 0x02 + 0x10),
 			cycles:      2,
 		},
 	}
@@ -211,7 +222,7 @@ func TestBEQ(t *testing.T) {
 			program:    []uint8{0xf0, 0x10},
 			setupZero:  newBool(true),
 			expectZero: true,
-			expectPC:   newUint16(ProgramStart + 0x11),
+			expectPC:   newUint16(ProgramStart + 0x02 + 0x10),
 			cycles:     2,
 		},
 	}
@@ -287,7 +298,7 @@ func TestBMI(t *testing.T) {
 			program:        []uint8{0x30, 0x10},
 			setupNegative:  newBool(true),
 			expectNegative: true,
-			expectPC:       newUint16(ProgramStart + 0x11),
+			expectPC:       newUint16(ProgramStart + 0x02 + 0x10),
 			cycles:         2,
 		},
 	}
@@ -308,7 +319,7 @@ func TestBNE(t *testing.T) {
 			name:       "branch",
 			program:    []uint8{0xd0, 0x10},
 			expectZero: false,
-			expectPC:   newUint16(ProgramStart + 0x11),
+			expectPC:   newUint16(ProgramStart + 0x02 + 0x10),
 			cycles:     2,
 		},
 	}
@@ -330,7 +341,7 @@ func TestBPL(t *testing.T) {
 			name:           "branch",
 			program:        []uint8{0x10, 0x10},
 			expectNegative: false,
-			expectPC:       newUint16(ProgramStart + 0x11),
+			expectPC:       newUint16(ProgramStart + 0x02 + 0x10),
 			cycles:         2,
 		},
 	}
@@ -352,7 +363,7 @@ func TestBRK(t *testing.T) {
 			expectSP: newUint16(StackTop - 0x03), // lo, hi, pc
 			expectMemory: map[uint16]uint8{
 				StackTop:       0xdd, // push PC high byte
-				StackTop - 0x1: 0x01, // push PC low byte
+				StackTop - 0x1: 0x02, // push PC low byte
 				StackTop - 0x2: 0x34, // push status with B flag set
 			},
 			cycles:                 7,
@@ -376,7 +387,7 @@ func TestBRK(t *testing.T) {
 			expectSP:      newUint16(StackTop - 0x03),
 			expectMemory: map[uint16]uint8{
 				StackTop:       0xdd,
-				StackTop - 0x1: 0x01,
+				StackTop - 0x1: 0x02,
 				StackTop - 0x2: 0xF7, // All flags set except zero
 			},
 			cycles:                 7,
@@ -400,7 +411,7 @@ func TestBRK(t *testing.T) {
 			expectSP: newUint16(StackTop - 0x03),
 			expectMemory: map[uint16]uint8{
 				StackTop:       0xdd,
-				StackTop - 0x1: 0x01,
+				StackTop - 0x1: 0x02,
 				StackTop - 0x2: 0x34, // Only B flag and reserved flag set
 			},
 			cycles:                 7,
@@ -425,7 +436,7 @@ func TestBVC(t *testing.T) {
 			name:           "branch",
 			program:        []uint8{0x50, 0x10},
 			expectOverflow: false,
-			expectPC:       newUint16(ProgramStart + 0x11),
+			expectPC:       newUint16(ProgramStart + 0x02 + 0x10),
 			cycles:         2,
 		},
 	}
@@ -446,7 +457,7 @@ func TestBVS(t *testing.T) {
 			program:        []uint8{0x70, 0x10},
 			setupOverflow:  newBool(true),
 			expectOverflow: true,
-			expectPC:       newUint16(ProgramStart + 0x11),
+			expectPC:       newUint16(ProgramStart + 0x02 + 0x10),
 			cycles:         2,
 		},
 	}
@@ -1765,8 +1776,6 @@ func TestRTS(t *testing.T) {
 				0x20, 0x05, 0xaa,
 				// PLA
 				0x68,
-				// NOP
-				0xea,
 			},
 			memory: map[uint16]uint8{
 				// PHA
@@ -1776,10 +1785,10 @@ func TestRTS(t *testing.T) {
 				// RTS
 				0xaa07: 0x60,
 			},
-			cycles:   28,
+			cycles:   33,
 			setupA:   newUint8(0x42),
 			expectA:  newUint8(0x42),
-			expectPC: newUint16(0xdd06),
+			expectPC: newUint16(0xdd05),
 		},
 	}
 	tests.run(t)
@@ -2245,21 +2254,21 @@ func TestTXS(t *testing.T) {
 			program:  []uint8{0x9a},
 			setupX:   newUint8(0x05),
 			cycles:   2,
-			expectSP: newUint16(StackTop | 0x05),
+			expectSP: newUint16(0x100 + 0x05),
 		},
 		{
 			name:     "TXS with zero value",
 			program:  []uint8{0x9a},
 			setupX:   newUint8(0x00),
 			cycles:   2,
-			expectSP: newUint16(StackTop),
+			expectSP: newUint16(0x100),
 		},
 		{
 			name:     "TXS with negative value",
 			program:  []uint8{0x9a},
 			setupX:   newUint8(0xf0),
 			cycles:   2,
-			expectSP: newUint16(StackTop | 0xf0),
+			expectSP: newUint16(0x100 + 0xf0),
 		},
 	}
 	tests.run(t)

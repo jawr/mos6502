@@ -58,7 +58,7 @@ func (cpu *MOS6502) bcc(ins *instruction, address uint16) {
 	if cpu.p.isSet(P_Carry) {
 		return
 	}
-	cpu.pc = address
+	cpu.branch(address)
 }
 
 func (cpu *MOS6502) bcs(ins *instruction, address uint16) {
@@ -66,7 +66,7 @@ func (cpu *MOS6502) bcs(ins *instruction, address uint16) {
 	if !cpu.p.isSet(P_Carry) {
 		return
 	}
-	cpu.pc = address
+	cpu.branch(address)
 }
 
 func (cpu *MOS6502) beq(ins *instruction, address uint16) {
@@ -74,7 +74,7 @@ func (cpu *MOS6502) beq(ins *instruction, address uint16) {
 	if !cpu.p.isSet(P_Zero) {
 		return
 	}
-	cpu.pc = address
+	cpu.branch(address)
 }
 
 func (cpu *MOS6502) bit(ins *instruction, address uint16) {
@@ -92,12 +92,27 @@ func (cpu *MOS6502) bit(ins *instruction, address uint16) {
 	cpu.p.set(P_Overflow, value&(1<<6) != 0)
 }
 
+func (cpu *MOS6502) branch(offset uint16) {
+	begin := cpu.pc
+
+	if offset < 0x80 {
+		cpu.pc += offset
+	} else {
+		cpu.pc -= 0x100 - offset
+	}
+
+	cpu.additionalCycles++
+	if (begin & 0xff00) != (cpu.pc & 0xff00) {
+		cpu.additionalCycles++
+	}
+}
+
 func (cpu *MOS6502) bmi(ins *instruction, address uint16) {
 	// Branch on Result Minus
 	if !cpu.p.isSet(P_Negative) {
 		return
 	}
-	cpu.pc = address
+	cpu.branch(address)
 }
 
 func (cpu *MOS6502) bne(ins *instruction, address uint16) {
@@ -105,7 +120,7 @@ func (cpu *MOS6502) bne(ins *instruction, address uint16) {
 	if cpu.p.isSet(P_Zero) {
 		return
 	}
-	cpu.pc = address
+	cpu.branch(address)
 }
 
 func (cpu *MOS6502) bpl(ins *instruction, address uint16) {
@@ -113,10 +128,14 @@ func (cpu *MOS6502) bpl(ins *instruction, address uint16) {
 	if cpu.p.isSet(P_Negative) {
 		return
 	}
-	cpu.pc = address
+	cpu.branch(address)
 }
 
 func (cpu *MOS6502) brk(ins *instruction, address uint16) {
+	// increment the pc so that BRK takes up the space of
+	// a 2 byte instruction and can replace it
+	cpu.pc++
+
 	// Force Break
 	// push return address to stack
 	cpu.push(uint8(cpu.pc >> 8))
@@ -141,7 +160,7 @@ func (cpu *MOS6502) bvc(ins *instruction, address uint16) {
 	if cpu.p.isSet(P_Overflow) {
 		return
 	}
-	cpu.pc = address
+	cpu.branch(address)
 }
 
 func (cpu *MOS6502) bvs(ins *instruction, address uint16) {
@@ -149,7 +168,7 @@ func (cpu *MOS6502) bvs(ins *instruction, address uint16) {
 	if !cpu.p.isSet(P_Overflow) {
 		return
 	}
-	cpu.pc = address
+	cpu.branch(address)
 }
 
 func (cpu *MOS6502) clc(ins *instruction, address uint16) {
@@ -223,6 +242,7 @@ func (cpu *MOS6502) dec(ins *instruction, address uint16) {
 
 func (cpu *MOS6502) dex(ins *instruction, address uint16) {
 	// Decrement Index X by One
+	// wrapping is handled by go uint
 	cpu.x--
 	cpu.testAndSetNegative(cpu.x)
 	cpu.testAndSetZero(cpu.x)
@@ -230,6 +250,7 @@ func (cpu *MOS6502) dex(ins *instruction, address uint16) {
 
 func (cpu *MOS6502) dey(ins *instruction, address uint16) {
 	// Decrement Index Y by One
+	// wrapping is handled by go uint
 	cpu.y--
 	cpu.testAndSetNegative(cpu.y)
 	cpu.testAndSetZero(cpu.y)
@@ -282,7 +303,6 @@ func (cpu *MOS6502) jsr(ins *instruction, address uint16) {
 	cpu.push(lo)
 
 	cpu.pc = address
-
 }
 
 func (cpu *MOS6502) lda(ins *instruction, address uint16) {
@@ -539,7 +559,7 @@ func (cpu *MOS6502) txa(ins *instruction, address uint16) {
 
 func (cpu *MOS6502) txs(ins *instruction, address uint16) {
 	// Transfer Index X to Stack Register
-	cpu.sp = StackTop | uint16(cpu.x)
+	cpu.sp = uint16(0x100) + uint16(cpu.x)
 }
 
 func (cpu *MOS6502) tya(ins *instruction, address uint16) {

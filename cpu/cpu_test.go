@@ -1,13 +1,15 @@
 package cpu
 
 import (
-	"fmt"
+	"log"
 	"testing"
 )
 
 const (
 	ProgramStart uint16 = 0xdd00
 )
+
+const DebugTests = true
 
 // setup a program within a cpu and return it
 func setup(program []uint8, bootstrap map[uint16]uint8) *MOS6502 {
@@ -28,6 +30,7 @@ func setup(program []uint8, bootstrap map[uint16]uint8) *MOS6502 {
 
 	cpu := NewMOS6502()
 	cpu.Reset(memory)
+	cpu.Debug = DebugTests
 
 	return cpu
 }
@@ -53,9 +56,10 @@ func cycle(t *testing.T, cpu *MOS6502, n uint8) {
 	t.Helper()
 
 	var i uint8
-	for i = 0; i < n; i++ {
+	for i = 1; i < n; i++ {
 		cpu.Cycle()
 	}
+
 	if cpu.wait != 0 {
 		t.Logf("expected wait to be 0 got %d cycles should be: %d", cpu.wait, n+cpu.wait)
 	}
@@ -146,6 +150,8 @@ type testCase struct {
 // run a test case setting up state and then asserting
 // all registers and flags
 func (tc *testCase) setup(t *testing.T) *MOS6502 {
+	t.Helper()
+
 	if tc.cycles == 0 {
 		t.Fatal("provided 0 cycles")
 	}
@@ -206,53 +212,54 @@ func (tc *testCase) setup(t *testing.T) *MOS6502 {
 // run a test case setting up state and then asserting
 // all registers and flags
 func (tc *testCase) run(t *testing.T, cpu *MOS6502) {
-	t.Run(tc.name, func(t *testing.T) {
-		// run
-		cycle(t, cpu, tc.cycles)
+	t.Helper()
+	// run
+	cycle(t, cpu, tc.cycles)
 
-		if false {
-			for address, value := range cpu.memory {
-				if value == 0 {
-					continue
-				}
-				fmt.Printf("pc: %04x\tsp: %04x\taddress: %04x\t%02x\n", cpu.pc, cpu.sp, address, value)
+	if DebugTests {
+		log.Printf("Memory...")
+		for address, value := range cpu.memory {
+			if value == 0 {
+				continue
+			}
+			log.Printf("\t%04x : %02x", address, value)
+		}
+		log.Println("--------------------")
+	}
+
+	// assert registers
+	expect8(t, cpu.a, tc.expectA)
+	expect8(t, cpu.x, tc.expectX)
+	expect8(t, cpu.y, tc.expectY)
+	expect16(t, cpu.sp, tc.expectSP)
+	expect16(t, cpu.pc, tc.expectPC)
+
+	// assert flags
+	expectFlag(t, cpu, P_Carry, tc.expectCarry)
+	expectFlag(t, cpu, P_Zero, tc.expectZero)
+	expectFlag(t, cpu, P_Overflow, tc.expectOverflow)
+	expectFlag(t, cpu, P_Negative, tc.expectNegative)
+
+	if tc.expectInterruptDisable != nil {
+		expectFlag(t, cpu, P_InterruptDisable, *tc.expectInterruptDisable)
+	}
+	if tc.expectDecimal != nil {
+		expectFlag(t, cpu, P_Decimal, *tc.expectDecimal)
+	}
+
+	if tc.expectBreak != nil {
+		expectFlag(t, cpu, P_Break, *tc.expectBreak)
+	}
+	expectFlag(t, cpu, P_Reserved, true)
+
+	if tc.expectMemory != nil {
+		for address := range cpu.memory {
+			expected := tc.expectMemory[uint16(address)]
+			if cpu.memory[address] != expected {
+				t.Errorf("expected memory %04x to be %02x got %02x", address, expected, cpu.memory[address])
 			}
 		}
-
-		// assert registers
-		expect8(t, cpu.a, tc.expectA)
-		expect8(t, cpu.x, tc.expectX)
-		expect8(t, cpu.y, tc.expectY)
-		expect16(t, cpu.sp, tc.expectSP)
-		expect16(t, cpu.pc, tc.expectPC)
-
-		// assert flags
-		expectFlag(t, cpu, P_Carry, tc.expectCarry)
-		expectFlag(t, cpu, P_Zero, tc.expectZero)
-		expectFlag(t, cpu, P_Overflow, tc.expectOverflow)
-		expectFlag(t, cpu, P_Negative, tc.expectNegative)
-
-		if tc.expectInterruptDisable != nil {
-			expectFlag(t, cpu, P_InterruptDisable, *tc.expectInterruptDisable)
-		}
-		if tc.expectDecimal != nil {
-			expectFlag(t, cpu, P_Decimal, *tc.expectDecimal)
-		}
-
-		if tc.expectBreak != nil {
-			expectFlag(t, cpu, P_Break, *tc.expectBreak)
-		}
-		expectFlag(t, cpu, P_Reserved, true)
-
-		if tc.expectMemory != nil {
-			for address := range cpu.memory {
-				expected := tc.expectMemory[uint16(address)]
-				if cpu.memory[address] != expected {
-					t.Errorf("expected memory %04x to be %02x got %02x", address, expected, cpu.memory[address])
-				}
-			}
-		}
-	})
+	}
 }
 
 // helper type for running multiple testCases
@@ -261,7 +268,9 @@ type testCases []testCase
 // run all testCases
 func (tcs testCases) run(t *testing.T) {
 	for _, tc := range tcs {
-		cpu := tc.setup(t)
-		tc.run(t, cpu)
+		t.Run(tc.name, func(t *testing.T) {
+			cpu := tc.setup(t)
+			tc.run(t, cpu)
+		})
 	}
 }

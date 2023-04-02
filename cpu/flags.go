@@ -1,5 +1,9 @@
 package cpu
 
+import (
+	"strings"
+)
+
 // flags
 const (
 	P_Carry flag = 1 << iota
@@ -15,8 +19,8 @@ const (
 type flag uint8
 type flags uint8
 
-func (a flags) isSet(b flag) bool {
-	return uint8(a)&uint8(b) != 0x0
+func (a *flags) isSet(b flag) bool {
+	return uint8(*a)&uint8(b) != 0x0
 }
 
 func (a *flags) set(b flag, v bool) {
@@ -25,6 +29,27 @@ func (a *flags) set(b flag, v bool) {
 	} else {
 		*a = flags(uint8(*a) &^ uint8(b))
 	}
+}
+
+func stringer(b *strings.Builder, f string, set bool) {
+	if !set {
+		b.WriteString("-")
+	} else {
+		b.WriteString(f)
+	}
+}
+
+func (a *flags) String() string {
+	b := &strings.Builder{}
+	stringer(b, "N", a.isSet(P_Negative))
+	stringer(b, "V", a.isSet(P_Overflow))
+	stringer(b, "-", a.isSet(P_Reserved))
+	stringer(b, "B", a.isSet(P_Break))
+	stringer(b, "D", a.isSet(P_Decimal))
+	stringer(b, "I", a.isSet(P_InterruptDisable))
+	stringer(b, "Z", a.isSet(P_Zero))
+	stringer(b, "C", a.isSet(P_Carry))
+	return b.String()
 }
 
 func (cpu *MOS6502) testAndSetNegative(b uint8) {
