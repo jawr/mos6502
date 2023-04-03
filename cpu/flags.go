@@ -6,13 +6,21 @@ import (
 
 // flags
 const (
+	// C
 	P_Carry flag = 1 << iota
+	// Z
 	P_Zero
+	// I
 	P_InterruptDisable
+	// D
 	P_Decimal
+	// B
 	P_Break
+	// -
 	P_Reserved
+	// V
 	P_Overflow
+	// N
 	P_Negative
 )
 

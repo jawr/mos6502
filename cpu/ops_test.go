@@ -360,13 +360,13 @@ func TestBRK(t *testing.T) {
 				IRQVectorHigh: 0x10,
 			},
 			expectPC: newUint16(0x1010),
-			expectSP: newUint16(StackTop - 0x03), // lo, hi, pc
+			expectSP: newUint8(StackTop - 0x03), // lo, hi, pc
 			expectMemory: map[uint16]uint8{
-				StackTop:       0xdd, // push PC high byte
-				StackTop - 0x1: 0x02, // push PC low byte
-				StackTop - 0x2: 0x34, // push status with B flag set
+				stackAddress(StackTop):       0xdd, // push PC high byte
+				stackAddress(StackTop - 0x1): 0x02, // push PC low byte
+				stackAddress(StackTop - 0x2): 0x34, // push status with B flag set
 			},
-			cycles:                 7,
+			cycles:                 9,
 			expectBreak:            newBool(true),
 			expectInterruptDisable: newBool(true),
 		},
@@ -384,11 +384,11 @@ func TestBRK(t *testing.T) {
 			setupOverflow: newBool(true),
 			setupNegative: newBool(true),
 			expectPC:      newUint16(0x1010),
-			expectSP:      newUint16(StackTop - 0x03),
+			expectSP:      newUint8(StackTop - 0x03),
 			expectMemory: map[uint16]uint8{
-				StackTop:       0xdd,
-				StackTop - 0x1: 0x02,
-				StackTop - 0x2: 0xF7, // All flags set except zero
+				stackAddress(StackTop):       0xdd,
+				stackAddress(StackTop - 0x1): 0x02,
+				stackAddress(StackTop - 0x2): 0xF7, // All flags set except zero
 			},
 			cycles:                 7,
 			expectBreak:            newBool(true),
@@ -408,11 +408,11 @@ func TestBRK(t *testing.T) {
 				IRQVectorHigh: 0x10,
 			},
 			expectPC: newUint16(0x1010),
-			expectSP: newUint16(StackTop - 0x03),
+			expectSP: newUint8(StackTop - 0x03),
 			expectMemory: map[uint16]uint8{
-				StackTop:       0xdd,
-				StackTop - 0x1: 0x02,
-				StackTop - 0x2: 0x34, // Only B flag and reserved flag set
+				stackAddress(StackTop):       0xdd,
+				stackAddress(StackTop - 0x1): 0x02,
+				stackAddress(StackTop - 0x2): 0x34, // Only B flag and reserved flag set
 			},
 			cycles:                 7,
 			expectBreak:            newBool(true),
@@ -1138,8 +1138,8 @@ func TestJSR(t *testing.T) {
 			name:    "jsr",
 			program: []uint8{0x20, 0x01, 0x04},
 			expectMemory: map[uint16]uint8{
-				StackTop:        0xdd,
-				StackTop - 0x01: 0x02,
+				stackAddress(StackTop):        0xdd,
+				stackAddress(StackTop - 0x01): 0x02,
 			},
 			cycles: 6,
 		},
@@ -1354,31 +1354,35 @@ func TestLSR(t *testing.T) {
 			name:         "zeropage",
 			program:      []uint8{0x46, 0x42},
 			memory:       map[uint16]uint8{0x0042: 0x55},
-			cycles:       5,
+			cycles:       7,
 			expectMemory: map[uint16]uint8{0x0042: 0x2a},
+			expectCarry:  true,
 		},
 		{
 			name:         "zeropage,x",
 			program:      []uint8{0x56, 0x42},
 			memory:       map[uint16]uint8{0x0047: 0x55},
-			cycles:       6,
+			cycles:       8,
 			expectMemory: map[uint16]uint8{0x0047: 0x2a},
 			setupX:       newUint8(0x5),
+			expectCarry:  true,
 		},
 		{
 			name:         "absolute",
 			program:      []uint8{0x4e, 0x42},
 			memory:       map[uint16]uint8{0x0042: 0x55},
-			cycles:       6,
+			cycles:       8,
 			expectMemory: map[uint16]uint8{0x0042: 0x2a},
+			expectCarry:  true,
 		},
 		{
 			name:         "absolute,x",
 			program:      []uint8{0x5e, 0x42},
 			memory:       map[uint16]uint8{0x0047: 0x55},
-			cycles:       7,
+			cycles:       9,
 			expectMemory: map[uint16]uint8{0x0047: 0x2a},
 			setupX:       newUint8(0x5),
+			expectCarry:  true,
 		},
 	}
 	tests.run(t)
@@ -1481,23 +1485,23 @@ func TestPHA(t *testing.T) {
 			name:     "PHA basic",
 			program:  []uint8{0x48}, // PHA
 			setupA:   newUint8(0x42),
-			cycles:   3,
+			cycles:   5,
 			expectA:  newUint8(0x42),
-			expectSP: newUint16(0x01fe),
+			expectSP: newUint8(0xfe),
 			expectMemory: map[uint16]uint8{
-				StackTop: 0x42,
+				stackAddress(StackTop): 0x42,
 			},
 		},
 		{
 			name:     "PHA with wraparound",
 			program:  []uint8{0x48}, // PHA
 			setupA:   newUint8(0x42),
-			setupSP:  newUint16(StackBottom),
-			cycles:   3,
+			setupSP:  newUint8(StackBottom),
+			cycles:   5,
 			expectA:  newUint8(0x42),
-			expectSP: newUint16(StackTop),
+			expectSP: newUint8(StackTop),
 			expectMemory: map[uint16]uint8{
-				StackBottom: 0x42,
+				stackAddress(StackBottom): 0x42,
 			},
 		},
 	}
@@ -1511,26 +1515,29 @@ func TestPHP(t *testing.T) {
 			program: []uint8{
 				0x08, // PHP
 			},
-			setupCarry:   newBool(false),
-			setupZero:    newBool(true),
-			expectMemory: map[uint16]uint8{StackTop: 0x36},
-			expectSP:     newUint16(StackTop - 0x01),
-			cycles:       3,
-			expectZero:   true,
-			expectCarry:  false,
+			setupCarry: newBool(false),
+			setupZero:  newBool(true),
+			expectMemory: map[uint16]uint8{
+				stackAddress(StackTop): 0x36,
+			},
+			expectSP:    newUint8(StackTop - 0x01),
+			cycles:      3,
+			expectZero:  true,
+			expectCarry: false,
 		},
 		{
 			name: "push processor status with zero flag and carry set",
 			program: []uint8{
 				0x08, // PHP
 			},
-			setupCarry:   newBool(true),
-			setupZero:    newBool(true),
-			expectMemory: map[uint16]uint8{StackTop: 0x37},
-			expectSP:     newUint16(StackTop - 0x01),
-			cycles:       3,
-			expectZero:   true,
-			expectCarry:  true,
+			setupCarry: newBool(true),
+			setupZero:  newBool(true),
+			expectMemory: map[uint16]uint8{
+				stackAddress(StackTop): 0x37},
+			expectSP:    newUint8(StackTop - 0x01),
+			cycles:      3,
+			expectZero:  true,
+			expectCarry: true,
 		},
 		{
 			name: "push processor status with negative flag set",
@@ -1538,8 +1545,8 @@ func TestPHP(t *testing.T) {
 				0x08, // PHP
 			},
 			setupNegative:  newBool(true),
-			expectMemory:   map[uint16]uint8{StackTop: 0xb4},
-			expectSP:       newUint16(StackTop - 0x01),
+			expectMemory:   map[uint16]uint8{stackAddress(StackTop): 0xb4},
+			expectSP:       newUint8(StackTop - 0x01),
 			cycles:         3,
 			expectNegative: true,
 		},
@@ -1552,22 +1559,24 @@ func TestPLA(t *testing.T) {
 		{
 			name:     "pull from stack + 1",
 			program:  []uint8{0x68}, // PLA
-			setupSP:  newUint16(StackTop - 0x01),
-			memory:   map[uint16]uint8{StackTop: 0x42},
+			setupSP:  newUint8(StackTop - 0x01),
+			memory:   map[uint16]uint8{stackAddress(StackTop): 0x42},
 			setupA:   newUint8(0x7f),
 			cycles:   4,
 			expectA:  newUint8(0x42),
-			expectSP: newUint16(StackTop),
+			expectSP: newUint8(StackTop),
 		},
 		{
-			name:     "pull from stack wrap to bottom",
-			program:  []uint8{0x68}, // PLA
-			setupSP:  newUint16(StackTop),
-			memory:   map[uint16]uint8{StackBottom: 0x42},
+			name:    "pull from stack wrap to bottom",
+			program: []uint8{0x68}, // PLA
+			setupSP: newUint8(StackTop),
+			memory: map[uint16]uint8{
+				stackAddress(StackBottom): 0x42,
+			},
 			setupA:   newUint8(0x7f),
-			cycles:   4,
+			cycles:   6,
 			expectA:  newUint8(0x42),
-			expectSP: newUint16(StackBottom),
+			expectSP: newUint8(StackBottom),
 		},
 	}
 	tests.run(t)
@@ -1584,11 +1593,11 @@ func TestPLP(t *testing.T) {
 			expectInterruptDisable: newBool(true),
 			expectOverflow:         true,
 			expectNegative:         true,
-			expectBreak:            newBool(true),
+			expectBreak:            newBool(false),
 			expectReserved:         true,
-			cycles:                 4,
-			setupSP:                newUint16(StackTop - 0x01),
-			memory:                 map[uint16]uint8{StackTop: 0xff},
+			cycles:                 6,
+			setupSP:                newUint8(StackTop - 0x01),
+			memory:                 map[uint16]uint8{stackAddress(StackTop): 0xff},
 		},
 		{
 			name:                   "PLP sets no flags",
@@ -1600,8 +1609,8 @@ func TestPLP(t *testing.T) {
 			expectOverflow:         false,
 			expectNegative:         false,
 			cycles:                 4,
-			setupSP:                newUint16(StackTop - 0x01),
-			memory:                 map[uint16]uint8{StackTop: 0x00},
+			setupSP:                newUint8(StackTop - 0x01),
+			memory:                 map[uint16]uint8{stackAddress(StackTop): 0x00},
 		},
 		{
 			name:                   "PLP sets some flags",
@@ -1610,8 +1619,8 @@ func TestPLP(t *testing.T) {
 			expectInterruptDisable: newBool(true),
 			expectNegative:         true,
 			cycles:                 4,
-			setupSP:                newUint16(StackTop - 0x01),
-			memory:                 map[uint16]uint8{StackTop: 0x8c},
+			setupSP:                newUint8(StackTop - 0x01),
+			memory:                 map[uint16]uint8{stackAddress(StackTop): 0x8c},
 		},
 	}
 	tests.run(t)
@@ -1726,26 +1735,26 @@ func TestRTI(t *testing.T) {
 			name:    "RTI - Basic",
 			program: []uint8{0x40},
 			memory: map[uint16]uint8{
-				StackTop:     0x12, // Stack: PC High
-				StackTop - 1: 0x34, // Stack: PC Low
-				StackTop - 2: 0x20, // Stack: P
+				stackAddress(StackTop):     0x12, // Stack: PC High
+				stackAddress(StackTop - 1): 0x34, // Stack: PC Low
+				stackAddress(StackTop - 2): 0x20, // Stack: P
 			},
-			setupSP:  newUint16(StackTop - 3),
+			setupSP:  newUint8(StackTop - 3),
 			cycles:   6,
-			expectSP: newUint16(StackTop),
+			expectSP: newUint8(StackTop),
 			expectPC: newUint16(0x1234),
 		},
 		{
 			name:    "RTI - Flags",
 			program: []uint8{0x40},
 			memory: map[uint16]uint8{
-				StackTop:     0x12,       // Stack: PC High
-				StackTop - 1: 0x34,       // Stack: PC Low
-				StackTop - 2: 0b11111111, // Stack: P
+				stackAddress(StackTop):     0x12,       // Stack: PC High
+				stackAddress(StackTop - 1): 0x34,       // Stack: PC Low
+				stackAddress(StackTop - 2): 0b11111111, // Stack: P
 			},
-			setupSP:                newUint16(StackTop - 3),
+			setupSP:                newUint8(StackTop - 3),
 			cycles:                 6,
-			expectSP:               newUint16(StackTop),
+			expectSP:               newUint8(StackTop),
 			expectPC:               newUint16(0x1234),
 			expectCarry:            true,
 			expectZero:             true,
@@ -1798,111 +1807,83 @@ func TestSBC(t *testing.T) {
 	tests := testCases{
 		// SBC immediate mode, no borrow
 		{
-			name:           "SBC immediate mode, no borrow",
-			program:        []uint8{0xE9, 0x01}, // SBC #$01
-			memory:         map[uint16]uint8{},
-			setupA:         newUint8(0x03),
-			setupPC:        newUint16(0xDD00),
-			cycles:         2,
-			expectA:        newUint8(0x02),
-			expectPC:       newUint16(0xDD02),
-			expectCarry:    true,
-			expectZero:     false,
-			expectOverflow: false,
-			expectNegative: false,
+			name:        "SBC immediate mode, no borrow",
+			program:     []uint8{0xE9, 0x01}, // SBC #$01
+			setupA:      newUint8(0x03),
+			cycles:      4,
+			expectA:     newUint8(0x01),
+			expectCarry: true,
 		},
 		// SBC immediate mode, with borrow
 		{
-			name:           "SBC immediate mode, with borrow",
-			program:        []uint8{0xE9, 0x03}, // SBC #$03
-			memory:         map[uint16]uint8{},
-			setupA:         newUint8(0x01),
-			setupPC:        newUint16(0xDD00),
-			cycles:         2,
+			name:        "SBC immediate mode, with borrow",
+			program:     []uint8{0xE9, 0x01}, // SBC #$03
+			setupCarry:  newBool(true),
+			setupA:      newUint8(0x03),
+			cycles:      4,
+			expectA:     newUint8(0x02),
+			expectCarry: true,
+		},
+		// SBC immediate mode, zero result
+		{
+			name:        "SBC immediate mode, zero result",
+			program:     []uint8{0xE9, 0x05}, // SBC #$05
+			setupA:      newUint8(0x05),
+			cycles:      4,
+			expectA:     newUint8(0x00),
+			expectCarry: true,
+			expectZero:  true,
+		},
+		// SBC immediate mode, negative result
+		{
+			name:           "SBC immediate mode, negative result",
+			program:        []uint8{0xE9, 0x07}, // SBC #$07
+			setupA:         newUint8(0x05),
+			cycles:         4,
 			expectA:        newUint8(0xFE),
-			expectPC:       newUint16(0xDD02),
 			expectCarry:    false,
-			expectZero:     false,
-			expectOverflow: false,
 			expectNegative: true,
 		},
-		// SBC zero page mode
+		// SBC immediate mode, overflow
 		{
-			name:           "SBC zero page mode",
-			program:        []uint8{0xE5, 0x10}, // SBC $10
-			memory:         map[uint16]uint8{0x0010: 0x02},
-			setupA:         newUint8(0x04),
-			setupPC:        newUint16(0xDD00),
-			cycles:         3,
-			expectA:        newUint8(0x02),
-			expectPC:       newUint16(0xDD02),
-			expectCarry:    true,
-			expectZero:     false,
-			expectOverflow: false,
-			expectNegative: false,
-		},
-		// SBC zero page, X mode
-		{
-			name:           "SBC zero page, X mode",
-			program:        []uint8{0xF5, 0x10}, // SBC $10,X
-			memory:         map[uint16]uint8{0x0011: 0x03},
-			setupA:         newUint8(0x05),
-			setupX:         newUint8(0x01),
-			setupPC:        newUint16(0xDD00),
+			name:           "SBC immediate mode, overflow",
+			program:        []uint8{0xE9, 0x81}, // SBC #$81
+			setupA:         newUint8(0x7F),
 			cycles:         4,
-			expectA:        newUint8(0x02),
-			expectPC:       newUint16(0xDD02),
+			expectA:        newUint8(0xFE),
 			expectCarry:    true,
-			expectZero:     false,
-			expectOverflow: false,
-			expectNegative: false,
+			expectOverflow: true,
 		},
 		// SBC absolute mode
 		{
-			name:           "SBC absolute mode",
-			program:        []uint8{0xED, 0x20, 0xDD}, // SBC $DD20
-			memory:         map[uint16]uint8{0xDD20: 0x03},
-			setupA:         newUint8(0x06),
-			setupPC:        newUint16(0xDD00),
-			cycles:         4,
-			expectA:        newUint8(0x03),
-			expectPC:       newUint16(0xDD03),
-			expectCarry:    true,
-			expectZero:     false,
-			expectOverflow: false,
-			expectNegative: false,
+			name:        "SBC absolute mode",
+			program:     []uint8{0xED, 0x10, 0x20}, // SBC $2010
+			memory:      map[uint16]uint8{0x2010: 0x03},
+			setupA:      newUint8(0x05),
+			cycles:      5,
+			expectA:     newUint8(0x02),
+			expectCarry: true,
 		},
-		// SBC absolute, X mode
+		// SBC zero page mode
 		{
-			name:           "SBC absolute, X mode",
-			program:        []uint8{0xFD, 0x20, 0xDD}, // SBC $DD20,X
-			memory:         map[uint16]uint8{0xDD21: 0x04},
-			setupA:         newUint8(0x08),
-			setupX:         newUint8(0x01),
-			setupPC:        newUint16(0xDD00),
-			cycles:         4,
-			expectA:        newUint8(0x04),
-			expectPC:       newUint16(0xDD03),
-			expectCarry:    true,
-			expectZero:     false,
-			expectOverflow: false,
-			expectNegative: false,
+			name:        "SBC zero page mode",
+			program:     []uint8{0xE5, 0x10}, // SBC $10
+			memory:      map[uint16]uint8{0x0010: 0x02},
+			setupA:      newUint8(0x04),
+			cycles:      4,
+			expectA:     newUint8(0x02),
+			expectCarry: true,
 		},
-		// SBC absolute, Y mode
+		// SBC indexed indirect mode
 		{
-			name:           "SBC absolute, Y mode",
-			program:        []uint8{0xF9, 0x20, 0xDD}, // SBC $DD20,Y
-			memory:         map[uint16]uint8{0xDD22: 0x05},
-			setupA:         newUint8(0x0A),
-			setupY:         newUint8(0x02),
-			setupPC:        newUint16(0xDD00),
-			cycles:         4,
-			expectA:        newUint8(0x05),
-			expectPC:       newUint16(0xDD03),
-			expectCarry:    true,
-			expectZero:     false,
-			expectOverflow: false,
-			expectNegative: false,
+			name:        "SBC indexed indirect mode",
+			program:     []uint8{0xE1, 0x10}, // SBC ($10, X)
+			memory:      map[uint16]uint8{0x0010: 0x20, 0x0011: 0x30, 0x3020: 0x01},
+			setupA:      newUint8(0x02),
+			setupX:      newUint8(0x00),
+			cycles:      7,
+			expectA:     newUint8(0x01),
+			expectCarry: true,
 		},
 	}
 	tests.run(t)
@@ -2183,26 +2164,26 @@ func TestTSX(t *testing.T) {
 		{
 			name:     "positive",
 			program:  []uint8{0xba}, // TSX
-			setupSP:  newUint16(0x0101),
+			setupSP:  newUint8(0x01),
 			expectX:  newUint8(0x01),
-			expectSP: newUint16(0x0101),
+			expectSP: newUint8(0x01),
 			cycles:   2,
 		},
 		{
 			name:           "negative",
 			program:        []uint8{0xba}, // TSX
-			setupSP:        newUint16(0xfffe),
+			setupSP:        newUint8(0xfe),
 			expectX:        newUint8(0xfe),
-			expectSP:       newUint16(0xfffe),
+			expectSP:       newUint8(0xfe),
 			cycles:         2,
 			expectNegative: true,
 		},
 		{
 			name:       "zero",
 			program:    []uint8{0xba}, // TSX
-			setupSP:    newUint16(0x0000),
-			expectX:    newUint8(0x00),
-			expectSP:   newUint16(0x0000),
+			setupSP:    newUint8(0x0),
+			expectX:    newUint8(0x0),
+			expectSP:   newUint8(0x0),
 			cycles:     2,
 			expectZero: true,
 		},
@@ -2254,21 +2235,21 @@ func TestTXS(t *testing.T) {
 			program:  []uint8{0x9a},
 			setupX:   newUint8(0x05),
 			cycles:   2,
-			expectSP: newUint16(0x100 + 0x05),
+			expectSP: newUint8(0x05),
 		},
 		{
 			name:     "TXS with zero value",
 			program:  []uint8{0x9a},
 			setupX:   newUint8(0x00),
 			cycles:   2,
-			expectSP: newUint16(0x100),
+			expectSP: newUint8(0x00),
 		},
 		{
 			name:     "TXS with negative value",
 			program:  []uint8{0x9a},
 			setupX:   newUint8(0xf0),
 			cycles:   2,
-			expectSP: newUint16(0x100 + 0xf0),
+			expectSP: newUint8(0xf0),
 		},
 	}
 	tests.run(t)

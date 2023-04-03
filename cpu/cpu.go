@@ -3,7 +3,6 @@ package cpu
 import (
 	"fmt"
 	"log"
-	"strings"
 )
 
 const (
@@ -17,8 +16,9 @@ const (
 	IRQVectorLow  uint16 = 0xfffe
 	IRQVectorHigh uint16 = 0xffff
 	// Stack pointer start
-	StackBottom uint16 = 0x0100
-	StackTop    uint16 = 0x01ff
+	StackOffset uint16 = 0x0100
+	StackBottom uint8  = 0x00
+	StackTop    uint8  = 0xff
 )
 
 type MOS6502 struct {
@@ -28,23 +28,11 @@ type MOS6502 struct {
 	x uint8
 	y uint8
 
-	// stack pointer
-	// this is actullay an 8 bit register masked to
-	// 0x0100 but we use a 16 bit for convenience
-	sp uint16
+	sp uint8
 
 	// program counter
 	pc uint16
 
-	// status register (https://www.masswerk.at/6502/6502_instruction_set.html)
-	// N -> Sign/Negative
-	// V -> Overflow
-	// - -> Reserved
-	// B -> Break
-	// D -> Decimal
-	// I -> Interrupt Disable
-	// Z -> Zero
-	// C -> Carry
 	p flags
 
 	// operations take a predetermined amount of time
@@ -67,6 +55,12 @@ type MOS6502 struct {
 
 	// catpure the number of additional cycles
 	additionalCycles uint8
+
+	// total cycle count
+	TotalCycles uint64
+
+	// last test
+	StopOnPC uint16
 }
 
 func NewMOS6502() *MOS6502 {
@@ -106,9 +100,9 @@ func (cpu *MOS6502) Stop() bool {
 }
 
 func (cpu *MOS6502) Cycle() {
-	// if we are waiting for a cycle to complete return early
-	if cpu.wait > 0 {
-		cpu.wait--
+	if cpu.pc == uint16(cpu.StopOnPC) {
+		cpu.halt = true
+		log.Printf("success...")
 		return
 	}
 
@@ -132,7 +126,7 @@ func (cpu *MOS6502) Cycle() {
 	if cpu.Debug {
 		disasm := cpu.disassembleInstruction(cpu.pc)
 		log.Printf(
-			"%04x : %02x\t%-30s\t%s\tA:%02x X:%02x Y:%02x\tSP:%04x [%s]",
+			"%04x : %02x\t%-30s\t%s\tA:%02x X:%02x Y:%02x\tSP:%04x",
 			cpu.pc,
 			opcode,
 			disasm.Disassembly,
@@ -141,7 +135,6 @@ func (cpu *MOS6502) Cycle() {
 			cpu.x,
 			cpu.y,
 			cpu.sp,
-			cpu.sprintStack(),
 		)
 	}
 
@@ -158,41 +151,26 @@ func (cpu *MOS6502) Cycle() {
 	cpu.pc += uint16(instruction.size)
 
 	// mark the cpu busy for the number of cycles the instruction takes (- this cycle)
-	cpu.wait = (instruction.cycles + cpu.additionalCycles)
+	cpu.TotalCycles += uint64(instruction.cycles + cpu.additionalCycles)
 
 	instruction.execute(address)
 }
 
+func stackAddress(sp uint8) uint16 {
+	return (StackOffset | uint16(sp))
+}
+
 // push a byte onto the stack if we overflow wrap around to the top of the stack
 func (cpu *MOS6502) push(b uint8) {
-	cpu.memory[StackBottom|cpu.sp] = b
+	cpu.memory[stackAddress(cpu.sp)] = b
 	cpu.sp--
-	// check for stack overflow
-	if cpu.sp < StackBottom {
-		cpu.sp = StackTop
-	}
 }
 
 // pop a byte off the stack. if we overflow wrap around to the bottom of the stack
 func (cpu *MOS6502) pop() uint8 {
 	cpu.sp++
-	// check for stack overflow
-	if cpu.sp > StackTop {
-		cpu.sp = StackBottom
-	}
-	b := cpu.memory[StackBottom|cpu.sp]
+	b := cpu.memory[stackAddress(cpu.sp)]
 	return b
-}
-
-func (cpu *MOS6502) sprintStack() string {
-	b := &strings.Builder{}
-	for i := cpu.sp; i >= StackTop; i-- {
-		if i != cpu.sp {
-			b.WriteString(" ")
-		}
-		b.WriteString(fmt.Sprintf("%02x", cpu.memory[StackBottom|i]))
-	}
-	return b.String()
 }
 
 func fmt8(n string, b uint8) string {

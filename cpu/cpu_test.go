@@ -113,7 +113,7 @@ type testCase struct {
 	setupA  *uint8
 	setupX  *uint8
 	setupY  *uint8
-	setupSP *uint16
+	setupSP *uint8
 	setupPC *uint16
 
 	// setup flags
@@ -140,7 +140,7 @@ type testCase struct {
 	expectA  *uint8
 	expectX  *uint8
 	expectY  *uint8
-	expectSP *uint16
+	expectSP *uint8
 	expectPC *uint16
 
 	// expectMemory to look like this
@@ -183,7 +183,7 @@ func (tc *testCase) setup(t *testing.T) *MOS6502 {
 	setupUint8(&cpu.a, tc.setupA)
 	setupUint8(&cpu.x, tc.setupX)
 	setupUint8(&cpu.y, tc.setupY)
-	setupUint16(&cpu.sp, tc.setupSP)
+	setupUint8(&cpu.sp, tc.setupSP)
 	setupUint16(&cpu.pc, tc.setupPC)
 
 	// setup flags
@@ -231,7 +231,7 @@ func (tc *testCase) run(t *testing.T, cpu *MOS6502) {
 	expect8(t, cpu.a, tc.expectA)
 	expect8(t, cpu.x, tc.expectX)
 	expect8(t, cpu.y, tc.expectY)
-	expect16(t, cpu.sp, tc.expectSP)
+	expect8(t, cpu.sp, tc.expectSP)
 	expect16(t, cpu.pc, tc.expectPC)
 
 	// assert flags

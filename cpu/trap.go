@@ -1,6 +1,6 @@
 package cpu
 
-const trapDetectorBufferSize = 16
+const trapDetectorBufferSize = 2
 
 type trapDetector struct {
 	buffer [trapDetectorBufferSize]uint16

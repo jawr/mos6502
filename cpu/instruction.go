@@ -1,6 +1,8 @@
 package cpu
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // the address mode of the instruction determines how the
 // operand interacts with the registers and memory
@@ -349,10 +351,13 @@ func (cpu *MOS6502) setupInstructions() {
 	// CPY
 	cpu.instructions[0xc0] = NewInstruction(OPC_CPY, 2, 2, cpu.cpy, AM_IMMEDIATE)
 	cpu.instructions[0xc4] = NewInstruction(OPC_CPY, 3, 2, cpu.cpy, AM_ZEROPAGE)
-	cpu.instructions[0xcc] = NewInstruction(OPC_CPY, 4, 3, cpu.cpy, AM_ABSOLUTE) // operand is accumulator A
+	cpu.instructions[0xcc] = NewInstruction(OPC_CPY, 4, 3, cpu.cpy, AM_ABSOLUTE)
+
+	// DEC
 	cpu.instructions[0xc6] = NewInstruction(OPC_DEC, 5, 2, cpu.dec, AM_ZEROPAGE)
 	cpu.instructions[0xd6] = NewInstruction(OPC_DEC, 6, 2, cpu.dec, AM_ZEROPAGE_X)
 	cpu.instructions[0xce] = NewInstruction(OPC_DEC, 6, 3, cpu.dec, AM_ABSOLUTE)
+	cpu.instructions[0xde] = NewInstruction(OPC_DEC, 7, 3, cpu.dec, AM_ABSOLUTE_X)
 
 	// DEX
 	cpu.instructions[0xca] = NewInstruction(OPC_DEX, 2, 1, cpu.dex, AM_IMPLIED)

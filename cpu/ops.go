@@ -1,26 +1,35 @@
 package cpu
 
-import "log"
-
 func (cpu *MOS6502) adc(ins *instruction, data uint16) {
 	// Add Memory to Accumulator with Carry
 	// A + M + C -> A, C
+	m := cpu.memory.Read(data)
+	cpu.addBinary(m)
+}
+
+func (cpu *MOS6502) addBinary(m uint8) {
+	a := cpu.a
+
+	// get carry
 	var c uint8 = 0
 	if cpu.p.isSet(P_Carry) {
 		c = 1
 	}
 
-	a := cpu.a
-	m := cpu.memory.Read(data)
-
 	// sum in uint16 to catch overflow
 	sum := uint16(a) + uint16(m) + uint16(c)
+	sum8 := uint8(sum)
 
-	cpu.a = uint8(sum & 0xff)
-	cpu.testAndSetCarry(sum)
+	// set if we exceed 8 bits
+	cpu.p.set(P_Carry, sum&0x100 != 0)
+
+	overflow := (a^sum8)&(m^sum8)&0x80 != 0
+	cpu.p.set(P_Overflow, overflow)
+
+	// set and test A
+	cpu.a = sum8
 	cpu.testAndSetNegative(cpu.a)
 	cpu.testAndSetZero(cpu.a)
-	cpu.testAndSetOverflow(a, m, cpu.a)
 }
 
 func (cpu *MOS6502) and(ins *instruction, data uint16) {
@@ -143,9 +152,11 @@ func (cpu *MOS6502) brk(ins *instruction, data uint16) {
 	cpu.push(uint8(cpu.pc >> 8))
 	cpu.push(uint8(cpu.pc & 0xff))
 
-	// push status register to stack with break flag set
-	cpu.p.set(P_Break, true)
-	cpu.push(uint8(cpu.p))
+	// push status register to stack with break flag and bit 5 set
+	p := cpu.p
+	p.set(P_Break, true)
+	p.set(P_Reserved, true)
+	cpu.push(uint8(p))
 
 	// set intterupt disable
 	cpu.p.set(P_InterruptDisable, true)
@@ -201,7 +212,6 @@ func (cpu *MOS6502) cmp(ins *instruction, data uint16) {
 	sub := cpu.a - b
 
 	cpu.p.set(P_Carry, cpu.a >= b)
-
 	cpu.testAndSetNegative(sub)
 	cpu.testAndSetZero(sub)
 }
@@ -282,8 +292,8 @@ func (cpu *MOS6502) iny(ins *instruction, data uint16) {
 
 func (cpu *MOS6502) inc(ins *instruction, data uint16) {
 	// Increment Memory by One
-	cpu.memory[data]++
-	value := cpu.memory.Read(data)
+	value := cpu.memory.Read(data) + 1
+	cpu.memory[data] = value
 	cpu.testAndSetNegative(value)
 	cpu.testAndSetZero(value)
 }
@@ -325,7 +335,6 @@ func (cpu *MOS6502) ldx(ins *instruction, data uint16) {
 
 func (cpu *MOS6502) ldy(ins *instruction, data uint16) {
 	// Load Index X with Memory
-	log.Printf("LDY %x", data)
 	value := cpu.memory.Read(data)
 	cpu.y = value
 	cpu.testAndSetNegative(cpu.y)
@@ -352,7 +361,7 @@ func (cpu *MOS6502) lsr(ins *instruction, data uint16) {
 	}
 
 	cpu.testAndSetZero(uint8(shifted))
-	cpu.testAndSetCarry(shifted)
+	cpu.p.set(P_Carry, (value&0x1) == 0x1)
 	cpu.p.set(P_Negative, false)
 }
 
@@ -378,8 +387,10 @@ func (cpu *MOS6502) php(ins *instruction, data uint16) {
 	// Push Processor Status on Stack
 	// The status register will be pushed with the break
 	// flag and bit 5 set to 1.
-	p := uint8(cpu.p) | uint8(P_Break) | uint8(P_Reserved)
-	cpu.push(p)
+	p := cpu.p
+	p.set(P_Break, true)
+	p.set(P_Reserved, true)
+	cpu.push(uint8(p))
 }
 
 func (cpu *MOS6502) pla(ins *instruction, data uint16) {
@@ -391,9 +402,10 @@ func (cpu *MOS6502) pla(ins *instruction, data uint16) {
 
 func (cpu *MOS6502) plp(ins *instruction, data uint16) {
 	// Pull Processor Status from Stack
-	p := cpu.pop()
-	cpu.p = flags(p)
-	cpu.p.set(P_Reserved, true)
+	p := flags(cpu.pop())
+	p.set(P_Break, false)
+	p.set(P_Reserved, true)
+	cpu.p = p
 }
 
 func (cpu *MOS6502) rol(ins *instruction, data uint16) {
@@ -458,6 +470,8 @@ func (cpu *MOS6502) rti(ins *instruction, data uint16) {
 	// Return from Interrupt
 	// pop the status register
 	cpu.p = flags(cpu.pop())
+
+	// ignore the break flag and bit 5
 	cpu.p.set(P_Reserved, true)
 	cpu.p.set(P_Break, false)
 
@@ -474,32 +488,16 @@ func (cpu *MOS6502) rts(ins *instruction, data uint16) {
 	lo := cpu.pop()
 	hi := cpu.pop()
 
+	cpu.halt = cpu.pc == 0x34bd
+
 	cpu.pc = (uint16(lo) | (uint16(hi) << 8))
 
 	cpu.pc++ // Increment the program counter by 1
 }
 
 func (cpu *MOS6502) sbc(ins *instruction, data uint16) {
-	// Subtract Memory from Accumulator with Borrow
-
-	var c uint8 = 0
-	if cpu.p.isSet(P_Carry) {
-		c = 1
-	}
-
-	a := cpu.a
 	m := cpu.memory.Read(data)
-
-	// sum in uint16 to catch overflow
-	sum := uint16(a) - uint16(m) + uint16(c)
-
-	cpu.a = uint8(sum & 0xff)
-	cpu.p.set(P_Carry, sum < 0x100)
-	cpu.testAndSetNegative(cpu.a)
-	cpu.testAndSetZero(cpu.a)
-
-	// set overrflow
-	cpu.p.set(P_Overflow, (a^m)&0x80 == 0x80 && (a^cpu.a)&0x80 == 0x80)
+	cpu.addBinary(^m)
 }
 
 func (cpu *MOS6502) sec(ins *instruction, data uint16) {
@@ -562,7 +560,7 @@ func (cpu *MOS6502) txa(ins *instruction, data uint16) {
 
 func (cpu *MOS6502) txs(ins *instruction, data uint16) {
 	// Transfer Index X to Stack Register
-	cpu.sp = uint16(0x100) + uint16(cpu.x)
+	cpu.sp = cpu.x
 }
 
 func (cpu *MOS6502) tya(ins *instruction, data uint16) {
