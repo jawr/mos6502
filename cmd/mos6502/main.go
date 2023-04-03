@@ -7,14 +7,18 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"time"
 
 	"github.com/jawr/mos6502/cpu"
+	term "github.com/nsf/termbox-go"
 )
 
 func main() {
 	rom := flag.String("rom", "", "Path to ROM file")
 	start := flag.Uint("start", uint(cpu.RESVectorLow), "Start address")
+	stop := flag.Uint("stop", 0, "Stop address")
+	debug := flag.Bool("debug", false, "Output each step")
+	trapDetector := flag.Bool("trapDetector", false, "Detect traps and stop")
+
 	flag.Parse()
 
 	memory, err := loadROM(*rom)
@@ -27,41 +31,79 @@ func main() {
 	cpu := cpu.NewMOS6502()
 	cpu.Reset(memory)
 	cpu.SetPC(uint16(*start))
-	cpu.Debug = true
-	cpu.TrapDetector = true
+
+	if *stop != 0 {
+		cpu.StopOnPC = uint16(*stop)
+	}
+	cpu.Debug = *debug
+	cpu.TrapDetector = *trapDetector
 
 	// setup interrupt
 	q := make(chan os.Signal, 1)
 	signal.Notify(q, os.Interrupt)
 
-	// setup clock
-	clock := time.NewTicker(33 * time.Nanosecond)
-	defer clock.Stop()
-
 	log.Printf("Starting CPU...")
 
+	// used for stepping through cpu
+	step := false
+
 	// run cpu
+MainLoop:
 	for {
+		if step {
+			ev := term.PollEvent()
+			if ev.Type != term.EventKey {
+				log.Printf("event: %v", ev)
+				os.Exit(1)
+			}
+
+			switch ev.Key {
+			case term.KeyEnter:
+				break
+			case term.KeyCtrlC:
+				term.Close()
+				break MainLoop
+			}
+		}
+
 		select {
 		case <-q:
-			os.Exit(0)
-		case <-clock.C:
+			log.Printf("CTRL-C pressed...")
+			// if first ctrl c and debug drop in to step mode
+			if !step && *debug {
+				log.Printf("Entering step mode...")
+
+				// setup term
+				err = term.Init()
+				if err != nil {
+					log.Printf("error initializing termbox: %s", err)
+					os.Exit(1)
+				}
+
+				step = true
+
+				continue MainLoop
+			}
+			break MainLoop
+		default:
+
+			// if we are in step mode we should wait for enter key to
+			// be pressed before continuing
+
 			cpu.Cycle()
 			if cpu.Stop() {
-				addresses := []uint16{0x0015, 0x0218}
-
-				log.Printf("CPU stopped...")
-				log.Printf("--------------")
-				log.Printf("Memory...")
-				for _, m := range addresses {
-					log.Printf("%04x : %04x", m, memory[m])
-				}
-				log.Printf("--------------")
-				os.Exit(1)
+				break MainLoop
 			}
 
 		}
 	}
+
+	log.Printf("CPU stopped...")
+	log.Printf("--------------")
+	log.Printf("Total Cycles: %d", cpu.TotalCycles)
+	log.Printf("--------------")
+	os.Exit(0)
+
 }
 
 func loadROM(path string) (*cpu.Memory, error) {
