@@ -1,6 +1,6 @@
 # mos6502
 
-mostly based off the instruction set documented here: https://www.masswerk.at/6502/6502_instruction_set.html#CLI
+mostly based off the instruction set documented here: https://www.masswerk.at/6502/6502_instruction_set.html as well as using GPT-4 to help write tests/debug issues and github copilot to write out the instruction table (which also introduced a bad opcode!).
 
 # clock
 
