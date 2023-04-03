@@ -59,10 +59,6 @@ func cycle(t *testing.T, cpu *MOS6502, n uint8) {
 	for i = 1; i < n; i++ {
 		cpu.Cycle()
 	}
-
-	if cpu.wait != 0 {
-		t.Logf("expected wait to be 0 got %d cycles should be: %d", cpu.wait, n+cpu.wait)
-	}
 }
 
 // helper function to setup a uint8 pointer
