@@ -488,10 +488,7 @@ func (cpu *MOS6502) rts(ins *instruction, data uint16) {
 	lo := cpu.pop()
 	hi := cpu.pop()
 
-	cpu.halt = cpu.pc == 0x34bd
-
 	cpu.pc = (uint16(lo) | (uint16(hi) << 8))
-
 	cpu.pc++ // Increment the program counter by 1
 }
 

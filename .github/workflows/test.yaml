@@ -16,5 +16,5 @@ jobs:
         run: go test -v ./...
 
       - name: Run functional tests
-        run: go run cmd/tests/main.go -stop 0x00336D -start 0x0400 -rom testdata/6502_functional_test.bin
+        run: go run cmd/tests/main.go -trapDetector -stop 0x00336D -start 0x0400 -rom testdata/6502_functional_test.bin
         timeout-minutes: 2

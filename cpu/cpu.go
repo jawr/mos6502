@@ -21,6 +21,16 @@ const (
 	StackTop    uint8  = 0xff
 )
 
+// describe the kind of halt received
+type HaltType uint8
+
+const (
+	Continue HaltType = iota
+	HaltSuccess
+	HaltTrap
+	HaltUnknownInstruction
+)
+
 type MOS6502 struct {
 	// main register
 	a uint8
@@ -45,7 +55,7 @@ type MOS6502 struct {
 	memory *Memory
 
 	// halt the cpu
-	halt bool
+	halt HaltType
 
 	// print out step debug information
 	Debug bool
@@ -95,14 +105,13 @@ func (cpu *MOS6502) SetPC(pc uint16) {
 	cpu.pc = pc
 }
 
-func (cpu *MOS6502) Stop() bool {
+func (cpu *MOS6502) Halt() HaltType {
 	return cpu.halt
 }
 
 func (cpu *MOS6502) Cycle() {
 	if cpu.pc == uint16(cpu.StopOnPC) {
-		cpu.halt = true
-		log.Printf("success...")
+		cpu.halt = HaltSuccess
 		return
 	}
 
@@ -115,7 +124,7 @@ func (cpu *MOS6502) Cycle() {
 	// read the instruction from the table halting if not found
 	instruction := cpu.instructions[opcode]
 	if instruction == nil {
-		cpu.halt = true
+		cpu.halt = HaltUnknownInstruction
 		log.Printf("no instruction found for opcode %02x at %04x", opcode, opcode)
 		return
 	}
@@ -141,7 +150,7 @@ func (cpu *MOS6502) Cycle() {
 	if cpu.TrapDetector {
 		cpu.trapDetector.push(cpu.pc)
 		if cpu.trapDetector.hastrap() {
-			cpu.halt = true
+			cpu.halt = HaltTrap
 			log.Printf("trap detected at %04x", cpu.pc)
 			return
 		}

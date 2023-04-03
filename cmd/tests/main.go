@@ -9,12 +9,13 @@ import (
 	"os/signal"
 
 	"github.com/jawr/mos6502/cpu"
+	mos6502 "github.com/jawr/mos6502/cpu"
 	term "github.com/nsf/termbox-go"
 )
 
 func main() {
 	rom := flag.String("rom", "", "Path to ROM file")
-	start := flag.Uint("start", uint(cpu.RESVectorLow), "Start address")
+	start := flag.Uint("start", uint(mos6502.RESVectorLow), "Start address")
 	stop := flag.Uint("stop", 0, "Stop address")
 	debug := flag.Bool("debug", false, "Output each step")
 	trapDetector := flag.Bool("trapDetector", false, "Detect traps and stop")
@@ -28,7 +29,7 @@ func main() {
 	}
 
 	// load memory into cpu
-	cpu := cpu.NewMOS6502()
+	cpu := mos6502.NewMOS6502()
 	cpu.Reset(memory)
 	cpu.SetPC(uint16(*start))
 
@@ -91,7 +92,8 @@ MainLoop:
 			// be pressed before continuing
 
 			cpu.Cycle()
-			if cpu.Stop() {
+
+			if cpu.Halt() != mos6502.Continue {
 				break MainLoop
 			}
 
@@ -102,7 +104,23 @@ MainLoop:
 	log.Printf("--------------")
 	log.Printf("Total Cycles: %d", cpu.TotalCycles)
 	log.Printf("--------------")
-	os.Exit(0)
+
+	code := 0
+	switch cpu.Halt() {
+	case mos6502.Continue:
+		log.Printf("CPU manually stopped")
+	case mos6502.HaltSuccess:
+		log.Printf("CPU hit stop PC successfully")
+	case mos6502.HaltTrap:
+		log.Printf("CPU halted on trap")
+	case mos6502.HaltUnknownInstruction:
+		log.Printf("CPU halted on unknown instruction")
+	}
+
+	if cpu.Halt() != mos6502.HaltSuccess {
+		code = 1
+	}
+	os.Exit(code)
 
 }
 
