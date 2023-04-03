@@ -153,7 +153,7 @@ func (tc *testCase) setup(t *testing.T) *MOS6502 {
 	t.Helper()
 
 	if tc.cycles == 0 {
-		t.Fatal("provided 0 cycles")
+		tc.cycles = 2
 	}
 
 	// setup state
@@ -212,7 +212,6 @@ func (tc *testCase) setup(t *testing.T) *MOS6502 {
 // run a test case setting up state and then asserting
 // all registers and flags
 func (tc *testCase) run(t *testing.T, cpu *MOS6502) {
-	t.Helper()
 	// run
 	cycle(t, cpu, tc.cycles)
 
